@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Net;
 using System;
+using System.Threading;
 
 // Going to go super simple, only 2 connections allowed. (see if I have time to upgrade to multiple players later).
 // Concept is both ends act the same, Host simply listens for 1 connection, then the host has the "first" turn.
@@ -12,26 +13,22 @@ using System;
 public class NetworkController : MonoBehaviour
 {
     Socket m_client = null;
+    Socket m_server_socket = null;
 
     const int m_recv_buffer_size = 1024 * 1024;
     static byte[] s_recv_buffer = new byte[m_recv_buffer_size];
-
-    static bool balls = false;
+    
 
     // Use this for initialization
     void Start ()
     {
-        ListenForConnections();
+        
 	}
 	
 	// Update is called once per frame
 	void Update ()
     {
-        if (!balls)
-        {
-            balls = true;
-            ConnectToHost(IPAddress.Loopback);
-        }
+        
 	}
 
     public bool ConnectToHost(IPAddress address)
@@ -53,7 +50,7 @@ public class NetworkController : MonoBehaviour
             }
         }
 
-        try
+        try 
         {
             m_client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
@@ -62,20 +59,11 @@ public class NetworkController : MonoBehaviour
         catch (SocketException ex)
         {
             // failed to bind and listen... 
-            System.Console.WriteLine("Socket Exception trying to connect. Message = (" + ex.Message + ")");
-            System.Console.WriteLine("Stack trace = (" + ex.StackTrace + ")");
+            Debug.Log("Socket Exception trying to connect. Message = (" + ex.Message + ")");
+            Debug.Log("Stack trace = (" + ex.StackTrace + ")");
 
             return false;
         }
-
-        // connection successful.
-
-        byte[] message = null;
-        ReceiveFullMessage(m_client, ref message);
-
-        Debug.Log("Received from client: " + System.Text.Encoding.ASCII.GetString(message));
-
-        SendFullMessage(m_client, System.Text.Encoding.ASCII.GetBytes("Hello world"));
 
         return true;
     }
@@ -85,56 +73,32 @@ public class NetworkController : MonoBehaviour
     {
         // this means we're the host. Make a Server socket and accept a bunch of connections.
 
-        Socket server_socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        m_server_socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
         try
         {
-            server_socket.Bind(new IPEndPoint(IPAddress.Any, 55555)); // 55555 because... Always 55555
-            server_socket.Listen(100);
+            m_server_socket.Bind(new IPEndPoint(IPAddress.Any, 55555)); // 55555 because... Always 55555
+            m_server_socket.Listen(10);
 
-                // BeginAccept because we want it to be async. Don't wanna lock up the main thread.
-            server_socket.BeginAccept(OnAcceptClient, server_socket);
+            m_client = m_server_socket.Accept();
+            
+            m_server_socket.Close();
+            m_server_socket = null;
         }
         catch (SocketException ex)
         {
             // failed to bind and listen... 
-            System.Console.WriteLine("Socket Exception. Message = (" + ex.Message + ")");
-            System.Console.WriteLine("Stack trace = (" + ex.StackTrace + ")");
+            Debug.Log("Socket Exception. Message = (" + ex.Message + ")");
+            Debug.Log("Stack trace = (" + ex.StackTrace + ")");
 
-            server_socket.Shutdown(SocketShutdown.Both);
-            server_socket.Close();
+            m_server_socket.Shutdown(SocketShutdown.Both);
+            m_server_socket.Close();
             //server_socket.Dispose();
 
             return false;
         }
 
         return true;
-    }
-
-    public void OnAcceptClient(System.IAsyncResult result)
-    {
-        // Client has connected. Time to start the game I guess.
-        // Not sure if this is sent on a separate thread or not. Assuming not until proven otherwise (I'll debug later)
-
-        Socket server_socket = result.AsyncState as Socket;
-
-        Socket client = server_socket.EndAccept(result); // strange syntax >_>
-
-        // only allowing one connection so shutdown the "server" and lets go.
-        server_socket.Shutdown(SocketShutdown.Both);
-        server_socket.Close();
-        //server_socket.Dispose();
-
-
-        // debug testing
-        Debug.Log("Client connected.");
-        
-        SendFullMessage(client, System.Text.Encoding.ASCII.GetBytes("Hello world"));
-
-        byte[] message = null;
-        ReceiveFullMessage(client, ref message);
-
-        Debug.Log("Received from client: " + System.Text.Encoding.ASCII.GetString(message));
     }
 
     // for now this will be blocking. Could change it to a system where it will accumulate a buffer and we can chew through each "full message" received.
@@ -169,8 +133,10 @@ public class NetworkController : MonoBehaviour
 
         do
         {
+            int amount_to_receive = Math.Min(m_recv_buffer_size, data_length - bytes_received);
+
             //TODO: deal with the 0 return, meaning graceful shutdown
-            bytes_received += socket.Receive(s_recv_buffer, data_length = bytes_received, SocketFlags.None);
+            bytes_received += socket.Receive(s_recv_buffer, amount_to_receive, SocketFlags.None);
 
             for (int i = 0; i < bytes_received; ++i)
             {
@@ -212,8 +178,8 @@ public class NetworkController : MonoBehaviour
         catch (SocketException ex)
         {
             // failed to bind and listen... 
-            System.Console.WriteLine("Socket Exception in SendFullMessage. Message = (" + ex.Message + ")");
-            System.Console.WriteLine("Stack trace = (" + ex.StackTrace + ")");
+            Debug.Log("Socket Exception in SendFullMessage. Message = (" + ex.Message + ")");
+            Debug.Log("Stack trace = (" + ex.StackTrace + ")");
             
             // possibly a disconnection. Not sure how C# deals with this.
 
@@ -236,8 +202,8 @@ public class NetworkController : MonoBehaviour
         catch (System.Exception ex)
         {
             // failed to bind and listen... 
-            System.Console.WriteLine("Socket Exception in SendFullMessage. Message = (" + ex.Message + ")");
-            System.Console.WriteLine("Stack trace = (" + ex.StackTrace + ")");
+            Debug.Log("Socket Exception in SendFullMessage. Message = (" + ex.Message + ")");
+            Debug.Log("Stack trace = (" + ex.StackTrace + ")");
 
             // possibly a disconnection. Not sure how C# deals with this.
 
