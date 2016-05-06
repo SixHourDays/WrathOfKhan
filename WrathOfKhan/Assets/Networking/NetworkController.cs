@@ -52,7 +52,7 @@ public class NetworkController : MonoBehaviour
 
         try 
         {
-            m_client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            m_client = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
             m_client.Connect(new IPEndPoint(address, 55555));
         }
@@ -102,7 +102,7 @@ public class NetworkController : MonoBehaviour
     }
 
     // for now this will be blocking. Could change it to a system where it will accumulate a buffer and we can chew through each "full message" received.
-    public static bool ReceiveFullMessage(Socket socket, ref byte[] out_message)
+    public static bool ReceiveFullMessage(Socket socket, out byte[] out_message)
     {
         // first receive the size header.
 
