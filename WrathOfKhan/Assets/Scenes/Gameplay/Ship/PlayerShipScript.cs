@@ -5,10 +5,11 @@ public class PlayerShipScript : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-        
-	}
+        camera = FindObjectOfType<Camera>();
+        Debug.Assert(camera != null);
+    }
 
-    public GameObject camera;
+    Camera camera;
     public GameObject torpedoGO;
     public GameObject aimerDotGO;
     public int aimerDotCount;
@@ -20,7 +21,8 @@ public class PlayerShipScript : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 
-        if (Input.GetKeyDown(KeyCode.G))
+        //toggle between flight mode and aimNShoot mode
+        if (Input.GetKeyDown(KeyCode.Space))
         {
             flying = !flying;
             for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(!flying); }
@@ -44,9 +46,9 @@ public class PlayerShipScript : MonoBehaviour {
             }
 
             //dot aimer
-            Vector3 aimerPos = camera.GetComponent<Camera>().ScreenToWorldPoint(Input.mousePosition);
-            aimerPos.z = 0;
-            Vector3 aimerDir = aimerPos.normalized;
+            Vector3 aimerPos = camera.ScreenToWorldPoint(Input.mousePosition);
+            aimerPos.z = 0; //need 0 to get normalized in 2d
+            Vector3 aimerDir = (aimerPos - transform.position).normalized;
             Vector3 aimerStart = transform.position + aimerDir * (GetComponent<CircleCollider2D>().radius + 0.1f); //step outside
 
             //iterate n fixed steps
@@ -61,6 +63,7 @@ public class PlayerShipScript : MonoBehaviour {
                 transform.GetChild(i).transform.position = stepPos;
             }
 
+            //shoot!
             if (Input.GetMouseButtonDown(0))
             {
                 GameObject torp = (GameObject)Instantiate(torpedoGO, aimerStart, new Quaternion());
