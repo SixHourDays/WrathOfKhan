@@ -5,6 +5,11 @@ using System;
 
 public class LoaderScript : MonoBehaviour
 {
+    //solely meant for 2 things - 
+    // 1 actually doing scene transitions in script
+    // 2 being state passover from scene to scene
+    // you can think of this as your global master singleton - it will always be alive
+
 
     public string[] sceneNames;
     public string startSceneName;
