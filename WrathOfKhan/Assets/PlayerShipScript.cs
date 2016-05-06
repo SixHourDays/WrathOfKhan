@@ -11,7 +11,6 @@ public class PlayerShipScript : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 
-        transform.position = transform.position + new Vector3(0.01f,0.0f,0.0f);
 	}
 
     Vector3 GetNBodyForceAtPos(Vector3 pos )
@@ -36,7 +35,8 @@ public class PlayerShipScript : MonoBehaviour {
     void FixedUpdate()
     {
         Vector3 gravForce = GetNBodyForceAtPos(transform.position);
-        velocity += gravForce * Time.fixedDeltaTime;
+        Vector3 accel = gravForce / mass;
+        velocity += accel * Time.fixedDeltaTime;
         transform.position += velocity * Time.fixedDeltaTime;
     }
 
