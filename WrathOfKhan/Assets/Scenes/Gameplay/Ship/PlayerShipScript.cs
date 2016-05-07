@@ -8,7 +8,7 @@ public class PlayerShipScript : MonoBehaviour {
         WaitForTurn,
         SetPowerLevels,
         ChooseAction,
-        FireWeapons,
+        FireWeapons,    //start of actions
         ShieldsUp,
         EngageEngines,
         LongRangeSensors,
@@ -19,19 +19,31 @@ public class PlayerShipScript : MonoBehaviour {
     Camera camera; //finds out scene cam
 
     //ui state
-    int uiWeaponPower = 1; //start em off
-    int uiShieldPower = 1;
-    int uiEnginePower = 3;
-    int uiSensorPower = 0;
-    int uiCloakPower = 0;
+    struct UIState
+    {
+        int weaponPower; //start em off
+        int shieldPower;
+        int enginePower;
+        int sensorPower;
+        int cloakPower;
+        public UIState(int wep, int shld, int eng, int sens, int clk)
+        {   weaponPower = wep; shieldPower = shld; enginePower = eng; sensorPower = sens; cloakPower = clk; }
+    };
+    UIState m_uiState = new UIState(1,1,3,0,0); //sum of 5
 
     //player state (relevant across all turns)
-    bool heavyTorpedos = false; //start em off
-    int torpedosRemaining = 0;
-    float shieldsRemaining = 0.0f; //normalized so we can tune
-    float enginesRemaining = 0.0f; //noralized so we can tune
-    int sensorsTurnAge = 0; //some number of turns to fade them off
-    bool cloaked = false;
+    struct ShipState
+    {
+        bool heavyTorpedos; //start em off
+        int torpedosRemaining;
+        float shieldsRemaining; //normalized so we can tune
+        float enginesRemaining; //noralized so we can tune
+        int sensorsTurnAge; //some number of turns to fade them off
+        bool cloaked;
+        public ShipState(bool hvyTorp, int torps, float shld, float eng, int sens, bool clk)
+        { heavyTorpedos = hvyTorp; torpedosRemaining = torps; shieldsRemaining = shld; enginesRemaining = eng; sensorsTurnAge = sens; cloaked = clk; }
+    };
+    ShipState m_shipState = new ShipState(false, 0, 0.0f, 0.0f, 0, false);
 
     // Use this for initialization
     void Start () {
