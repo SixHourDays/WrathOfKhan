@@ -14,7 +14,6 @@ public class HeatMap : MonoBehaviour
     public float m_noiseSpeed = 100.0f;
 
     public float m_heatLossSpeed = 0.1f;
-    public float m_diffusionSpeed = 1.0f;
 
     public ComputeShader m_computeHeatMap;
     private float[] m_heatGrid;
@@ -30,8 +29,6 @@ public class HeatMap : MonoBehaviour
 	// Use this for initialization
 	void Start () 
     {
-        m_heatGrid = new float[m_heatGridWidth * m_heatGridHeight];
-
         m_heatGridTex = new RenderTexture[2];
         for (int i = 0; i < 2; ++i)
         {
@@ -44,25 +41,25 @@ public class HeatMap : MonoBehaviour
         m_heatMapTex.enableRandomWrite = true;
         m_heatMapTex.Create();
 
-        InitHeatGrid();
+        InsertRandomObjects(50);
 	}
 	
 	// Update is called once per frame
 	void Update () 
     {
-        DiffusionStep();
-        FlipTex();
-        RenderHeatMap();
+	}
 
-        if( Random.Range(0.0f, 1.0f) > 0.75f )
+    void InsertRandomObjects(int numObj)
+    {
+        for (int i = 0; i < numObj; ++i )
         {
-            Vector2 pos = new Vector2( Random.Range(0, m_heatGridWidth-1), Random.Range(0, m_heatGridHeight-1) );
-            Vector2 size = new Vector2( Random.Range(0.1f*m_heatGridWidth, 0.25f*m_heatGridWidth), Random.Range(0.1f*m_heatGridHeight, 0.25f*m_heatGridHeight) );
-            float heatVal = Random.Range(m_maxHeat * 0.25f, m_maxHeat);
+            Vector2 pos = new Vector2(Random.Range(0, m_heatGridWidth - 1), Random.Range(0, m_heatGridHeight - 1));
+            Vector2 size = new Vector2(Random.Range(0.1f * m_heatGridWidth, 0.25f * m_heatGridWidth), Random.Range(0.1f * m_heatGridHeight, 0.25f * m_heatGridHeight));
+            float heatVal = Random.Range(m_maxHeat * 0.25f, m_maxHeat * 0.8f);
 
             InjectHeatObject(pos, size, heatVal);
         }
-	}
+    }
 
     public float GetHeat( int x, int y )
     {
@@ -96,38 +93,6 @@ public class HeatMap : MonoBehaviour
         }
     }
 
-    private void InitHeatGrid()
-    {
-    /*    for( int i = 0; i < (m_heatGridWidth*m_heatGridHeight); ++i)
-        {
-            m_heatGrid[i] = Random.Range(0.0f, m_maxHeat);
-        } */
-
-        //Vector2 center = new Vector2( (512+1024)/2.0f, (512+1024)/2.0f );
-        //for( int iX = 512; iX < 1024; ++iX )
-        //{
-        //    for( int iY = 512; iY < 1024; ++iY )
-        //    {
-        //        float d = Vector2.Distance( center, new Vector2(iX,iY));
-        //        float t = Mathf.InverseLerp(256.0f, 0.0f, d);
-        //        float h = Mathf.Lerp(0.0f, m_maxHeat, t);
-        //        AddHeat(iX, iY, h);
-        //    }
-        //}
-
-        //for (int iX = 0; iX < m_heatGridWidth; ++iX )
-        //{
-        //    for( int iY = 0; iY < m_heatGridHeight; ++iY )
-        //    {
-                
-        //    }
-        //}
-
-        //m_heatBuffer.SetData(m_heatGrid);
-
-      //  InjectHeatObject(new Vector2(1024.0f, 1024.0f), new Vector2(1024.0f, 1024.0f), 40.0f);
-    }
-
     public void InjectHeatObject( Vector2 pos, Vector2 size, float heatStrength )
     {
         Vector2 halfSize = size / 2.0f;
@@ -144,33 +109,6 @@ public class HeatMap : MonoBehaviour
         m_computeHeatMap.SetFloat("injectStrength", heatStrength);
 
         m_computeHeatMap.Dispatch(kernelId, (int)size.x / 8, (int)size.y / 8, 1);
-    }
-
-    private void DiffuseHeat( int x, int y )
-    {
-        float currentHeat = GetHeat(x, y);
-
-        float lostHeat = currentHeat * Time.deltaTime * m_heatLossSpeed;
-        currentHeat = Mathf.Max(0.0f, currentHeat - lostHeat);
-
-        float diffusedHeat = currentHeat * Time.deltaTime * m_diffusionSpeed;
-        
-        SubtractHeat(x, y, lostHeat + diffusedHeat);
-
-        const double t0 = 0.14644660940672623779957781894758;
-        float d0 = (float)(t0*diffusedHeat);
-
-        AddHeat(x - 1, y, d0);
-        AddHeat(x + 1, y, d0);
-        AddHeat(x, y-1, d0);
-        AddHeat(x, y+1, d0);
-
-        const double t1 = 0.10355339059327376220042218105242;
-        float d1 = (float)(t1 * diffusedHeat);
-        AddHeat(x - 1, y - 1, d1);
-        AddHeat(x + 1, y - 1, d1);
-        AddHeat(x - 1, y + 1, d1);
-        AddHeat(x + 1, y + 1, d1);
     }
 
     public void DiffusionStep()
@@ -190,9 +128,10 @@ public class HeatMap : MonoBehaviour
         m_computeHeatMap.SetInt("GridWidth", m_heatGridWidth);
         m_computeHeatMap.SetInt("GridHeight", m_heatGridHeight);
         m_computeHeatMap.SetFloat("heatLossSpeed", m_heatLossSpeed);
-        m_computeHeatMap.SetFloat("diffusionSpeed", m_diffusionSpeed);
         m_computeHeatMap.SetFloat("deltaTime", Time.deltaTime);
         m_computeHeatMap.Dispatch(kernelId, m_heatGridWidth / 8, m_heatGridHeight / 8, 1);
+
+        FlipTex();
     }
 
     private int GetHeatGridIdx( int x, int y )
@@ -206,7 +145,6 @@ public class HeatMap : MonoBehaviour
 
         int kernelId = m_computeHeatMap.FindKernel("RenderHeatMap");
         m_computeHeatMap.SetTexture(kernelId, "Result", m_heatMapTex);
-       // m_computeHeatMap.SetBuffer(kernelId, "HeatGrid", m_heatBuffer);
         m_computeHeatMap.SetTexture(kernelId, "HeatTexSrc", CurrentSrcTexture);
         m_computeHeatMap.SetTexture(kernelId, "HeatGradient", m_heatMapGradient);
         m_computeHeatMap.SetFloat("MaxHeat", m_maxHeat);

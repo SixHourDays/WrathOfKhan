@@ -8,16 +8,25 @@ public class UIManager : MonoBehaviour
     public Texture2D m_emptyPowerMouseOverTexture;
     public Texture2D m_fullPowerMouseOverTexture;
 
+    private GameObject m_hud;
+    private GameObject m_heatMap;
+
     private UISection m_phase1;
     private UISection m_phase2;
+
+    private bool m_heatMapActive = false;
 
     public void Start()
     {
         Transform hudObj = this.transform.FindChild("HUD");
+        m_hud = hudObj.gameObject;
+
         m_phase1 = hudObj.FindChild("Phase_1").GetComponent<UISection>();
         Debug.Assert(m_phase1 != null);
         m_phase2 = hudObj.FindChild("Phase_2").GetComponent<UISection>();
         Debug.Assert(m_phase2 != null);
+
+        m_heatMap = this.transform.FindChild("HeatMap").gameObject;
 
         //wait for turn to enable
         SetPhasesInactive();
@@ -25,7 +34,11 @@ public class UIManager : MonoBehaviour
 
     public void Update()
     {
-
+        if( Input.GetKeyUp(KeyCode.M))
+        {
+            m_heatMapActive = !m_heatMapActive;
+            SetHeatMapActive(m_heatMapActive);
+        }
     }
 
     public static UIManager Get()
@@ -107,5 +120,19 @@ public class UIManager : MonoBehaviour
         powerLevel[1] = shieldPower;
         powerLevel[2] = enginePower;
         //todo - 4th tier
+    }
+
+    public void SetHeatMapActive(bool enable)
+    {
+        if (enable)
+        {
+            m_hud.SetActive(false);
+            m_heatMap.SetActive(true);
+        }
+        else
+        {
+            m_hud.SetActive(true);
+            m_heatMap.SetActive(false);
+        }
     }
 }
