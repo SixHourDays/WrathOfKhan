@@ -36,6 +36,17 @@ public class NetworkController : MonoBehaviour
 
     List<NetworkEventHandler> m_eventHandlers = new List<NetworkEventHandler>();
 
+
+    public PlayerInfo GetLocalPlayerInfo()
+    {
+        return m_localPlayerInfo;
+    }
+
+    public List<PlayerInfo> GetRemotePlayerInfos()
+    {
+        return new List<PlayerInfo>(m_players);
+    }
+
     // Use this for initialization
     void Start ()
     {
@@ -99,6 +110,17 @@ public class NetworkController : MonoBehaviour
         else if (info.transmission_name == typeof(ConnectTransmission).Name)
         {
             ConnectTransmission temp = JsonUtility.FromJson<ConnectTransmission>(info.transmission_payload);
+
+            for (int i = 0; i < m_eventHandlers.Count; ++i)
+            {
+                m_eventHandlers[i].OnNetworkEvent(temp);
+            }
+
+            shouldPropegate = false;
+        }
+        else if (info.transmission_name == typeof(EndTurnTransmission).Name)
+        {
+            EndTurnTransmission temp = JsonUtility.FromJson<EndTurnTransmission>(info.transmission_payload);
 
             for (int i = 0; i < m_eventHandlers.Count; ++i)
             {

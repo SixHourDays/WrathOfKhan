@@ -1,8 +1,9 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class GameplayScript : MonoBehaviour {
-
+public class GameplayScript : MonoBehaviour
+{
+    private NetworkController m_networkController = null;
 
     static GameplayScript sm_this;
     public static GameplayScript Get() { return sm_this; }
@@ -17,11 +18,33 @@ public class GameplayScript : MonoBehaviour {
     }
 
     // Use this for initialization
-    void Start () {
+    void Start ()
+    {
         sm_this = this;
 
-        localPlayerIndex = 0; //DAN!!!
-	}
+        GameObject loaderScene = GameObject.Find("LoaderScene");
+        if (loaderScene != null)
+        {
+            m_networkController = loaderScene.GetComponent<NetworkController>();
+        }
+        else
+        {
+            Debug.LogError("Failed to find LoaderScene. Should always be present");
+        }
+
+        localPlayerIndex = m_networkController.GetLocalPlayerInfo().playerID;
+
+        if (localPlayerIndex == 0)
+        {
+            // we're the host. Host always goes first (easiest).
+            GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.WaitForTurn);
+        }
+    }
+
+	void Update ()
+    {
+        //GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.WaitForTurn);
+    }
 
     public void EndLocalPlayerTurn()
     {
@@ -29,15 +52,10 @@ public class GameplayScript : MonoBehaviour {
         //DAN!
     }
 
-    // Update is called once per frame
-    int dumbCount = 0;
-	void Update () {
-	
-        //FAKE SYNC
-        //wait 500 frames then END waiting for turn;
-        if ( ++dumbCount == 250 )
-        {
-            GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.WaitForTurn);
-        }
-	}
+    public void OnEndTurnNetworkEvent(EndTurnTransmission transmission)
+    {
+        // previous person ended their turn, so we should start our turn.
+
+        GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.WaitForTurn);
+    }
 }
