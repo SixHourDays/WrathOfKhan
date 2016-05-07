@@ -1,20 +1,121 @@
 ﻿// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel RenderHeatMap
+#pragma kernel DiffuseHeat
+#pragma kernel InjectHeat
 
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
 RWTexture2D<float4> Result;
-StructuredBuffer<float> HeatGrid;
+Texture2D<float> HeatTexSrc;
+RWTexture2D<float> HeatTexDst;
+
+RWStructuredBuffer<float> HeatGrid;
 float MaxHeat;
-int 
+int GridWidth;
+int GridHeight;
+float4 TexToGrid;
+Texture2D<float4> HeatGradient;
+float timeVal;
+float noiseScale;
+
+uint rng_state;
+
+float heatLossSpeed;
+float diffusionSpeed;
+float deltaTime;
+
+
+uint injectStartX;
+uint injectStartY;
+uint injectEndX;
+uint injectEndY;
+float injectStrength;
+
+SamplerState _LinearClamp;
+ 
+uint rand_xorshift()
+{
+    // Xorshift algorithm from George Marsaglia's paper
+    rng_state ^= (rng_state << 13);
+    rng_state ^= (rng_state >> 17);
+    rng_state ^= (rng_state << 5);
+    return rng_state;
+}
+
+uint wang_hash(uint seed)
+{
+    seed = (seed ^ 61) ^ (seed >> 16);
+    seed *= 9;
+    seed = seed ^ (seed >> 4);
+    seed *= 0x27d4eb2d;
+    seed = seed ^ (seed >> 15);
+    return seed;
+}
+
+[numthreads(8,8,1)]
+void InjectHeat(uint3 id : SV_DispatchThreadID)
+{
+	uint2 uv = id.xy + uint2(injectStartX, injectStartY);
+	uint2 center = uint2( injectStartX+injectEndX, injectStartY+injectEndY )/2;
+	float d = distance(uv, center);
+
+	float size = 0.5 * min( injectEndX-injectStartX, injectEndY-injectStartY );
+	float t = smoothstep( size, 0.0, d );
+	float heatStrength = t*injectStrength;
+
+	HeatTexDst[uv] += heatStrength;
+}
+
+
+void DiffuseCell( int x, int y )
+{
+	int2 uv = int2(x,y);
+	float currentHeat = HeatTexSrc[uv];
+
+	float lostHeat = deltaTime * heatLossSpeed;
+	currentHeat = max(0.0, currentHeat - lostHeat);
+
+	HeatTexDst[uv] = currentHeat;
+}
+
+[numthreads(8,8,1)]
+void DiffuseHeat (uint3 id : SV_DispatchThreadID)
+{
+	DiffuseCell( id.x, id.y );
+}
 
 [numthreads(8,8,1)]
 void RenderHeatMap (uint3 id : SV_DispatchThreadID)
 {
+	float seed = id.x+(id.y*2048);
+	seed *= timeVal;
+	rng_state = wang_hash(seed);
+	rng_state = rand_xorshift();
+	rng_state = rand_xorshift();
+
+	// Generate a random float in [0, 1)...
+    float f0 = float(rand_xorshift()) * (1.0 / 4294967296.0);
+	f0 = 2.0 * (f0-0.5);
+
 	// TODO: insert actual code here!
-	
+	int2 gridCoord = TexToGrid*id.xy;
+	float2 uv = gridCoord/float2(GridWidth,GridHeight);
+	float heat = HeatTexSrc.SampleLevel( _LinearClamp, uv, 0);
 
-//	lerp(0.0, MaxHeat, )
+	float2 randPos = id.xy;
+	//randPos = randPos*randPos*(3.0-2.0*randPos);
 
-	Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
+	heat += f0*noiseScale;
+	float gradientValue = smoothstep(0.0, MaxHeat, heat);
+
+	float f1 = float(rand_xorshift()) * (1.0 / 4294967296.0);
+	f1 = 2.0 * (f0-0.5);
+
+	float4 heatValue = HeatGradient.SampleLevel(_LinearClamp, float2(gradientValue, 0.5), 0);
+	heatValue += f1*0.1;
+
+	Result[id.xy] = heatValue;
+	//Result[id.xy] = float4(f0, f0, f0, 1.0);
+	//Result[id.xy] = float4(outValue, outValue, outValue, 1.0);
+	//Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
 }
