@@ -5,6 +5,8 @@ public class GameplayScript : MonoBehaviour
 {
     private NetworkController m_networkController = null;
 
+    private bool m_firstFrameInit = false;
+
     static GameplayScript sm_this;
     public static GameplayScript Get() { return sm_this; }
 
@@ -36,23 +38,29 @@ public class GameplayScript : MonoBehaviour
         {
             localPlayerIndex = m_networkController.GetLocalPlayerInfo().playerID;
         }
-
-        if (localPlayerIndex == 0)
-        {
-            // we're the host. Host always goes first (easiest).
-            GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.WaitForTurn);
-        }
     }
+
 
 	void Update ()
     {
-        //GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.WaitForTurn);
+        if (!m_firstFrameInit)
+        {
+            if (localPlayerIndex == 0)
+            {
+                // we're the host. Host always goes first (easiest).
+                GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.WaitForTurn);
+            }
+
+            m_firstFrameInit = true;
+        }
     }
 
     public void EndLocalPlayerTurn()
     {
-        Debug.Log("GameplayScript end local turn");
-        //DAN!
+        if (m_networkController)
+        {
+            m_networkController.SendTransmission(new EndTurnTransmission());
+        }
     }
 
     public void OnEndTurnNetworkEvent(EndTurnTransmission transmission)

@@ -314,7 +314,6 @@ public class NetworkController : MonoBehaviour
 
         if (sock == null)
         {
-            Debug.Log("Sending firebullet to m_next");
             sock = m_next;
         }
 

@@ -48,9 +48,9 @@ public class PlayerShipScript : MonoBehaviour
             case PlayerTurnSteps.SetPowerLevels:
                 {
                     //get back power levels from it
-                    m_shipState.torpedosRemaining = UIManager.Get().GetPowerLevel(0);
-                    m_shipState.shieldsRemaining = UIManager.Get().GetPowerLevel(1);
-                    m_shipState.enginesRemaining = UIManager.Get().GetPowerLevel(2);
+                    m_shipState.torpedosRemaining = UIManager.Get().GetPowerLevel(0); //a literal count
+                    m_shipState.shieldsRemaining = UIManager.Get().GetPowerLevel(1) / 3.0f; //normalized
+                    m_shipState.enginesRemaining = UIManager.Get().GetPowerLevel(2) / 3.0f; //normalized
                     //...
                     Debug.Log( "Commit end of SetPowerLevels" + m_shipState.torpedosRemaining + " " + m_shipState.shieldsRemaining + " " + m_shipState.enginesRemaining );
                     //TODO toggle UI with avaiable buttons for powers picked
@@ -64,7 +64,7 @@ public class PlayerShipScript : MonoBehaviour
                 {
                     //UI choose which action to do
                     UIManager.Get().SetPhasesInactive();
-                    Debug.Log("commit action" + UIManager.Get().actionChoice);
+                    Debug.Log("commit action" + UIManager.Get().actionChoice.ToString());
 
                     Debug.Log("start action");
                     turnStep = UIManager.Get().actionChoice;
@@ -116,6 +116,11 @@ public class PlayerShipScript : MonoBehaviour
                     break;
                 }
             case PlayerTurnSteps.ShieldsUp:
+                {
+
+                    break;
+                }
+            case PlayerTurnSteps.AimEngines:
                 {
 
                     break;
@@ -202,6 +207,7 @@ public class PlayerShipScript : MonoBehaviour
             GameObject dotChild = Instantiate(aimerDotGO);
             dotChild.transform.parent = transform;
             dotChild.SetActive(false);
+            dotChild.GetComponent<SpriteRenderer>().color = new Color(1.0f, 1.0f, 1.0f, (float)(aimerDotCount - i) / aimerDotCount);
         }
     }
 
@@ -258,7 +264,7 @@ public class PlayerShipScript : MonoBehaviour
                         for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(true); }
                     }
 
-                    //dot aimer
+                    //gravity dot aimer
                     Vector3 mousePos = camera.ScreenToWorldPoint(Input.mousePosition);
                     mousePos.z = 0; //need 0 to get normalized in 2d
                     Vector3 mouseDir = (mousePos - transform.position).normalized;
@@ -299,7 +305,45 @@ public class PlayerShipScript : MonoBehaviour
 
                   break;
               }
-          case PlayerTurnSteps.EngageEngines:
+            case PlayerTurnSteps.AimEngines:
+                {
+                    /*
+                    //aimer dots on
+                    if (!transform.GetChild(0).gameObject.activeSelf)
+                    {
+                        Debug.Log("AimEngines start");
+                        for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(true); }
+                    }
+
+                    //radius dot aimer
+                    Vector3 mousePos = camera.ScreenToWorldPoint(Input.mousePosition);
+                    mousePos.z = 0; //need 0 to get normalized in 2d
+                    Vector3 mouseDir = (mousePos - transform.position).normalized;
+                    aimerPos = transform.position + mouseDir * (GetComponent<CircleCollider2D>().radius + 0.2f); //step outside
+                    aimerVelo = mouseDir * torpedoVelo;
+
+                    //iterate n fixed steps
+                    Vector3 stepPos = aimerPos;
+                    Vector3 stepVelo = aimerVelo;
+                    for (int i = 0; i < aimerDotCount; ++i)
+                    {
+                        Vector3 gravForce = TorpedoScript.GetNBodyForceAtPos(stepPos);
+                        Vector3 accel = gravForce / mass;
+                        stepVelo += accel * Time.fixedDeltaTime;
+                        stepPos += stepVelo * Time.fixedDeltaTime;
+                        transform.GetChild(i).transform.position = stepPos;
+                    }
+
+                    //shoot!
+                    if (Input.GetMouseButtonDown(0))
+                    {
+                        CommitTurnStep(PlayerTurnSteps.AimWeapons);
+                    }
+                    */
+
+                    break;
+                }
+            case PlayerTurnSteps.EngageEngines:
               {
 
                     //toggle between flight mode and aimNShoot mode
