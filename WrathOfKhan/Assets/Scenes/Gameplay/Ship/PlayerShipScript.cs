@@ -120,16 +120,24 @@ public class PlayerShipScript : MonoBehaviour
                 }
             case PlayerTurnSteps.AimEngines:
                 {
+                    Debug.Log("end aim engines");
+                    //aimer dots off
+                    for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(false); }
+
+                    turnStep = PlayerTurnSteps.EngageEngines;
+
+                    //ENGAGE!!
+                    //dont decrement enginesRemaining here, used by Update's AimEngines
+                    Debug.Log("ship flight");
 
                     break;
                 }
             case PlayerTurnSteps.EngageEngines:
                 {
-                    UIManager.Get().SetPhasesInactive();
+                    m_shipState.enginesRemaining = 0;
+                    Debug.Log("end ship flight");
 
-                    Debug.Log("chosen engageEngines");
-                    turnStep = PlayerTurnSteps.FireWeapons;
-
+                    turnStep = ChooseOrDone();
                     break;
                 }
             case PlayerTurnSteps.LongRangeSensors:
@@ -210,14 +218,18 @@ public class PlayerShipScript : MonoBehaviour
     public GameObject aimerDotGO;
     public int aimerDotCount;
     public float torpedoVelo;
+    public float engineDistance;
+    public float engineSpeed;
 
-    //state across Firing/Fired
+    //dual meaning state:
+    //firing/fired - pos of where torp would start, velo of torp on spawn
+    //pickDest/engine - pos is final destination, velo is vector of oldpos to new pos
     Vector3 aimerPos;
     Vector3 aimerVelo;
     GameObject firedTorpedo;
 
     Camera camera; //finds out scene cam
-
+    
     // Update is called once per frame
     void Update ()
     {
@@ -259,14 +271,14 @@ public class PlayerShipScript : MonoBehaviour
                         for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(true); }
                     }
 
-                    //gravity dot aimer
-                    Vector3 mousePos = camera.ScreenToWorldPoint(Input.mousePosition);
-                    mousePos.z = 0; //need 0 to get normalized in 2d
-                    Vector3 mouseDir = (mousePos - transform.position).normalized;
-                    aimerPos = transform.position + mouseDir * (GetComponent<CircleCollider2D>().radius + 0.2f); //step outside
-                    aimerVelo = mouseDir * torpedoVelo;
-
-                    //iterate n fixed steps
+                    //convert mouse to world screen pos, and get direction of mouse vs ship
+                    Vector3 worldMousePos = camera.ScreenToWorldPoint(Input.mousePosition);
+                    worldMousePos.z = 0; //need 0 to get normalized in 2d
+                    Vector3 worldMouseDir = (worldMousePos - transform.position).normalized;
+                    aimerPos = transform.position + worldMouseDir * (GetComponent<CircleCollider2D>().radius + 0.2f); //step outside
+                    aimerVelo = worldMouseDir * torpedoVelo;
+                    
+                    //gravity dot aimer via predict n fixed steps
                     Vector3 stepPos = aimerPos;
                     Vector3 stepVelo = aimerVelo;
                     for (int i = 0; i < aimerDotCount; ++i)
@@ -302,7 +314,7 @@ public class PlayerShipScript : MonoBehaviour
               }
             case PlayerTurnSteps.AimEngines:
                 {
-                    /*
+                    
                     //aimer dots on
                     if (!transform.GetChild(0).gameObject.activeSelf)
                     {
@@ -310,45 +322,54 @@ public class PlayerShipScript : MonoBehaviour
                         for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(true); }
                     }
 
-                    //radius dot aimer
-                    Vector3 mousePos = camera.ScreenToWorldPoint(Input.mousePosition);
-                    mousePos.z = 0; //need 0 to get normalized in 2d
-                    Vector3 mouseDir = (mousePos - transform.position).normalized;
-                    aimerPos = transform.position + mouseDir * (GetComponent<CircleCollider2D>().radius + 0.2f); //step outside
-                    aimerVelo = mouseDir * torpedoVelo;
+                    //convert mouse to world screen pos, and get direction of mouse vs ship
+                    Vector3 worldMousePos = camera.ScreenToWorldPoint(Input.mousePosition);
+                    worldMousePos.z = 0; //need 0 to get normalized in 2d
+                    Vector3 worldMouseOffset = worldMousePos - transform.position;
 
-                    //iterate n fixed steps
-                    Vector3 stepPos = aimerPos;
-                    Vector3 stepVelo = aimerVelo;
+                    //clamp to engine power committed
+                    float maxMag = m_shipState.enginesRemaining * engineDistance;
+                    if ( worldMouseOffset.magnitude > maxMag)
+                    {
+                        worldMouseOffset = worldMouseOffset.normalized * maxMag;
+                    }
+
+                    aimerPos = transform.position + worldMouseOffset;
+                    aimerVelo = worldMouseOffset;
+
+                    //radius dot aimer
                     for (int i = 0; i < aimerDotCount; ++i)
                     {
-                        Vector3 gravForce = TorpedoScript.GetNBodyForceAtPos(stepPos);
-                        Vector3 accel = gravForce / mass;
-                        stepVelo += accel * Time.fixedDeltaTime;
-                        stepPos += stepVelo * Time.fixedDeltaTime;
-                        transform.GetChild(i).transform.position = stepPos;
+                        Vector3 dotPos = transform.position + worldMouseOffset * ((float)i / aimerDotCount);
+                        transform.GetChild(i).transform.position = dotPos;
                     }
 
                     //shoot!
                     if (Input.GetMouseButtonDown(0))
                     {
-                        CommitTurnStep(PlayerTurnSteps.AimWeapons);
+                        CommitTurnStep(PlayerTurnSteps.AimEngines);
                     }
-                    */
 
                     break;
                 }
             case PlayerTurnSteps.EngageEngines:
               {
-
-                    //toggle between flight mode and aimNShoot mode
-                    if (Input.GetKeyDown(KeyCode.Space))
+                    //move by steps of engineSpeed, until last step, then do less
+                    Vector3 offsetToDest = transform.position - aimerPos;
+                    bool lastStep = false;
+                    float stepDist = engineSpeed;
+                    if (offsetToDest.magnitude < engineSpeed)
                     {
-                        turnStep = PlayerTurnSteps.FireWeapons;
-                        for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(true); }
+                        lastStep = true;
+                        stepDist = offsetToDest.magnitude;
                     }
+                     
+                    transform.position += aimerVelo.normalized * stepDist;
 
-
+                    if ( lastStep )
+                    {
+                        CommitTurnStep(PlayerTurnSteps.EngageEngines);
+                    }
                     break;
                 }
             case PlayerTurnSteps.LongRangeSensors:
@@ -364,18 +385,7 @@ public class PlayerShipScript : MonoBehaviour
         
     }
 
-    void FixedUpdate()
-    {
-        if (turnStep != PlayerTurnSteps.EngageEngines) { return; }
-
-        Vector3 gravForce = TorpedoScript.GetNBodyForceAtPos(transform.position);
-        Vector3 accel = gravForce / mass;
-        velocity += accel * Time.fixedDeltaTime;
-        transform.position += velocity * Time.fixedDeltaTime;
-    }
-
     public float mass {  get { return GetComponent<Rigidbody2D>().mass; } }
-    public Vector3 velocity;
 
     void OnBulletFiredNetworkEvent(FireBullet transmission)
     {
