@@ -11,6 +11,8 @@ public class UIPowerSystem : MonoBehaviour
     private bool m_updateMouseOver = false;
     private UIPowerControl m_pwrControl;
 
+    private bool m_active;
+
     // Use this for initialization
 	void Start () 
     {
@@ -24,7 +26,7 @@ public class UIPowerSystem : MonoBehaviour
 	// Update is called once per frame
 	void Update () 
     {
-	    if( m_updateMouseOver )
+        if (m_active && m_updateMouseOver)
         {
             UpdatePowerMouseOver();
         }
@@ -52,12 +54,17 @@ public class UIPowerSystem : MonoBehaviour
         }
     }
 
+    private bool IsMouseOverPowerNode( int nodeIdx )
+    {
+        float mouseX = Input.mousePosition.x;
+        Vector3 left = new Vector3(m_imgNodes[ nodeIdx ].rectTransform.rect.xMin, 0.0f, 0.0f);
+        float xPos = m_imgNodes[ nodeIdx ].transform.TransformPoint(left).x;
+
+        return (mouseX > xPos);
+    }
+
     private void UpdatePowerMouseOver()
     {
-        Vector3 mousePos = this.transform.TransformPoint( Input.mousePosition );
-     
-        float mouseX = Input.mousePosition.x;
-        
         for (int i = 0; i < m_imgNodes.Length; ++i)
         {
             bool powerOn = m_power >= (i + 1);
@@ -65,7 +72,7 @@ public class UIPowerSystem : MonoBehaviour
             int powerAdjustment = m_power - (i + 1);
             int availablePower = m_pwrControl.availablePower + powerAdjustment;
 
-            bool displayMouseOver = (mouseX > m_imgNodes[i].transform.position.x) && (availablePower >= 0);
+            bool displayMouseOver = IsMouseOverPowerNode(i) && (availablePower >= 0);
 
             if (displayMouseOver)
             {
@@ -104,7 +111,7 @@ public class UIPowerSystem : MonoBehaviour
             int powerAdjustment = m_power - (i + 1);
             int availablePower = m_pwrControl.availablePower + powerAdjustment;
 
-            if ( (mouseX > m_imgNodes[i].transform.position.x) && (availablePower >= 0))
+            if ( IsMouseOverPowerNode(i) && (availablePower >= 0))
             {
                 ++numNodes;
             }
@@ -117,17 +124,38 @@ public class UIPowerSystem : MonoBehaviour
 
     public void OnPointerEnter()
     {
+        if (!m_active)
+        {
+            return;
+        }
+
         m_updateMouseOver = true;
     }
 
     public void OnPointerExit()
     {
+        if (!m_active)
+        {
+            return;
+        }
+
         m_updateMouseOver = false;
         UpdatePowerDisplay();
     }
 
     public void OnPointerClick()
     {
+        if (!m_active)
+        {
+            return;
+        }
+
         AssignPower();
+    }
+
+    public void SetActive( bool active )
+    {
+        m_active = active;
+        UpdatePowerDisplay();
     }
 }

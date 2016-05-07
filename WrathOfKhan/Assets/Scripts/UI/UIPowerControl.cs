@@ -7,7 +7,7 @@ public class UIPowerControl : MonoBehaviour
     public UIPowerSystem[] m_systems;
     public Text m_txtPowerRemaining;
 
-    private int m_availablePower = 10;
+    private int m_availablePower = 5;
 
 	// Use this for initialization
 	void Start () 

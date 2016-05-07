@@ -8,6 +8,20 @@ public class UIManager : MonoBehaviour
     public Texture2D m_emptyPowerMouseOverTexture;
     public Texture2D m_fullPowerMouseOverTexture;
 
+    private UISection m_phase1;
+    private UISection m_phase2;
+
+    public void Start()
+    {
+        Transform hudObj = this.transform.FindChild("HUD");
+        m_phase1 = hudObj.FindChild("Phase_1").GetComponent<UISection>();
+        Debug.Assert(m_phase1 != null);
+        m_phase2 = hudObj.FindChild("Phase_2").GetComponent<UISection>();
+        Debug.Assert(m_phase2 != null);
+
+        SetPhaseOneActive();
+    }
+
     public void Update()
     {
     }
@@ -42,5 +56,22 @@ public class UIManager : MonoBehaviour
     public Sprite GetFullPowerMouseOverSprite()
     {
         return GetSprite(m_fullPowerMouseOverTexture);
+    }
+
+    public void SetPhaseOneActive()
+    {
+        m_phase1.SetActive(true);
+        m_phase2.SetActive(false);
+    }
+
+    public void SetPhaseTwoActive()
+    {
+        m_phase1.SetActive(false);
+        m_phase2.SetActive(true);
+    }
+
+    public void CommitPower()
+    {
+        SetPhaseTwoActive();
     }
 }
