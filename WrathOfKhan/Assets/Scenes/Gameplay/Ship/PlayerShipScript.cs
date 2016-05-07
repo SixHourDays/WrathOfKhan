@@ -387,7 +387,7 @@ public class PlayerShipScript : MonoBehaviour
 
     public float mass {  get { return GetComponent<Rigidbody2D>().mass; } }
 
-    void OnBulletFiredNetworkEvent(FireBullet transmission)
+    public void OnBulletFiredNetworkEvent(FireBullet transmission)
     {
         if (transmission.player_id == playerID)
         {
@@ -395,7 +395,7 @@ public class PlayerShipScript : MonoBehaviour
         }
     }
 
-    void OnShipMovedNetworkEvent(ShipMovedTransmission transmission)
+    public void OnShipMovedNetworkEvent(ShipMovedTransmission transmission)
     {
         if (transmission.player_id == playerID)
         {
@@ -403,7 +403,7 @@ public class PlayerShipScript : MonoBehaviour
         }
     }
 
-    void OnShipDamagedNetworkEvent(DamageShipTransmission transmission)
+    public void OnShipDamagedNetworkEvent(DamageShipTransmission transmission)
     {
         if (transmission.player_id == playerID)
         {
