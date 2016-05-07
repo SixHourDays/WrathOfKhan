@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using System.Collections;
+using System.Collections.Generic;
 
 public class GameplayScript : MonoBehaviour
 {
@@ -16,7 +16,16 @@ public class GameplayScript : MonoBehaviour
     public PlayerShipScript GetLocalPlayer()
     {
         PlayerShipScript[] players = GetComponentsInChildren<PlayerShipScript>();
-        return players[localPlayerIndex];
+        
+        for (int i = 0; i < players.Length; ++i)
+        {
+            if (players[i].playerID == localPlayerIndex)
+            {
+                return players[i];
+            }
+        }
+
+        return null;
     }
 
     // Use this for initialization
@@ -37,6 +46,13 @@ public class GameplayScript : MonoBehaviour
         if (m_networkController)
         {
             localPlayerIndex = m_networkController.GetLocalPlayerInfo().playerID;
+
+            List<NetworkController.PlayerInfo> players = m_networkController.GetRemotePlayerInfos();
+            
+            for (int i = 0; i < players.Count; ++i)
+            {
+
+            }
         }
     }
 
