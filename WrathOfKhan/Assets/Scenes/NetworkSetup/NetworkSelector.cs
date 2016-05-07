@@ -9,11 +9,23 @@ public class NetworkSelector : MonoBehaviour
 {
     public InputField field;
 
-	// Use this for initialization
-	void Start ()
+    private NetworkController m_controller;
+    private LoaderScript m_loader;
+
+    // Use this for initialization
+    void Start()
     {
-	
-	}
+        GameObject loaderScene = GameObject.Find("LoaderScene");
+        if (loaderScene != null)
+        {
+            m_controller = loaderScene.GetComponent<NetworkController>();
+            m_loader = loaderScene.GetComponent<LoaderScript>();
+        }
+        else
+        {
+            Debug.LogError("Failed to find LoaderScene. Should always be present");
+        }
+    }
 	
     public void ConnectToHost()
     {
@@ -27,33 +39,23 @@ public class NetworkSelector : MonoBehaviour
 
             if (success)
             {
-                GameObject loaderScene = GameObject.Find("LoaderScene");
-                if (loaderScene != null)
+                if (m_controller != null && m_loader != null)
                 {
-                    NetworkController controller = loaderScene.GetComponent<NetworkController>();
-                    LoaderScript loaderScript = loaderScene.GetComponent<LoaderScript>();
+                    success = m_controller.ConnectToHost(ipaddress);
 
-                    if (controller != null && loaderScript != null)
+                    if (success)
                     {
-                        success = controller.ConnectToHost(ipaddress);
-
-                        if (success)
-                        {
-                            loaderScript.SwitchToSceneNamed("GameplayScene");
-                        }
-                        else
-                        {
-                            Debug.Log("Failed to connect to host.");
-                        }
+                        // await messages from the host to "fix up" our connections.
+                        //m_loader.SwitchToSceneNamed("GameplayScene");
                     }
                     else
                     {
-                        Debug.LogError("Failed to find NetworkController or LoaderScript on LoaderScene object.");
+                        Debug.Log("Failed to connect to host.");
                     }
                 }
                 else
                 {
-                    Debug.LogError("Failed to find LoaderScene. Should always be present");
+                    Debug.LogError("Failed to find NetworkController or LoaderScript on LoaderScene object.");
                 }
             }
             else
@@ -65,33 +67,34 @@ public class NetworkSelector : MonoBehaviour
 
     public void HostGame()
     {
-        GameObject loaderScene = GameObject.Find("LoaderScene");
-        if (loaderScene != null)
+        if (m_controller != null && m_loader != null)
         {
-            NetworkController controller = loaderScene.GetComponent<NetworkController>();
-            LoaderScript loaderScript = loaderScene.GetComponent<LoaderScript>();
+            bool success = m_controller.ListenForConnections(1);
 
-            if (controller != null && loaderScript != null)
+            if (success)
             {
-                bool success = controller.ListenForConnections();
-
-                if (success)
-                {
-                    loaderScript.SwitchToSceneNamed("GameplayScene");
-                }
-                else
-                {
-                    Debug.Log("Failed to connect to host.");
-                }
+                m_loader.SwitchToSceneNamed("GameplayScene");
             }
             else
             {
-                Debug.LogError("Failed to find NetworkController or LoaderScript on LoaderScene object.");
+                Debug.Log("Failed to Retrieve all connections");
             }
         }
         else
         {
-            Debug.LogError("Failed to find LoaderScene. Should always be present");
+            Debug.LogError("Failed to find NetworkController or LoaderScript on LoaderScene object.");
         }
+    }
+
+    public void OnConnectTransmission(ConnectTransmission connectEvent)
+    {
+        // deal with it properly, then start the gameplay screen.
+
+        if (m_controller)
+        {
+            m_controller.OnConnectTransmission(connectEvent);
+        }
+
+        m_loader.SwitchToSceneNamed("GameplayScene");
     }
 }

@@ -3,24 +3,43 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Net;
 using System;
-using System.Threading;
 
 // Going to go super simple, only 2 connections allowed. (see if I have time to upgrade to multiple players later).
 // Concept is both ends act the same, Host simply listens for 1 connection, then the host has the "first" turn.
 // The Client listens for the host to complete what he's doing, then they switch. The host then listens for the client
 // to finish his turn. We bounce back and forth like this for the whole game.
 
+// scratch that, we're going N players allowed. Going to do a ring buffer of people. First everyone connects to the host,
+// then the host tells the clients how to fix themselves up to be a ring buffer (and telling them their playerID)
+
 public class NetworkController : MonoBehaviour
 {
-    Socket m_client = null;
-    Socket m_server_socket = null;
+    public struct PlayerInfo
+    {
+        public int playerID;
+    }
+    
+    // Host only information *************************************
+    bool m_isHost = false;
 
+    // non-host only information *********************************
+    Socket m_next = null;
+    Socket m_prev = null;
+
+
+    // Shared information between host and clients.
+    PlayerInfo m_localPlayerInfo;
+    List<PlayerInfo> m_players = new List<PlayerInfo>();
+    
+
+    // event handling and network processing
     bool m_shouldHandleEvents = true;
 
     const int m_recv_buffer_size = 1024 * 1024;
     static byte[] s_recv_buffer = new byte[m_recv_buffer_size];
 
     List<NetworkEventHandler> m_eventHandlers = new List<NetworkEventHandler>();
+    
 
     // Use this for initialization
     void Start ()
@@ -41,14 +60,18 @@ public class NetworkController : MonoBehaviour
             return;
         }
 
-        if (m_client == null)
+        // Always "hear" about things from the prev.
+        if (m_prev == null)
         {
             return;
         }
 
-        if (m_client.Available > 0)
+        if (m_prev.Available > 0)
         {
             // we have data, go grab it.
+
+            // if this was sent FROM our playerID, consume it.
+            // otherwise read it, send it to next, and dispatch.
 
             TransmissionInfo info = RetrieveTransmission();
             DispatchEvent(info);
@@ -62,6 +85,15 @@ public class NetworkController : MonoBehaviour
         {
             FireBullet temp = JsonUtility.FromJson<FireBullet>(info.transmission_payload);
             
+            for (int i = 0; i < m_eventHandlers.Count; ++i)
+            {
+                m_eventHandlers[i].OnNetworkEvent(temp);
+            }
+        }
+        else if (info.transmission_name == typeof(ConnectTransmission).Name)
+        {
+            ConnectTransmission temp = JsonUtility.FromJson<ConnectTransmission>(info.transmission_payload);
+
             for (int i = 0; i < m_eventHandlers.Count; ++i)
             {
                 m_eventHandlers[i].OnNetworkEvent(temp);
@@ -100,26 +132,27 @@ public class NetworkController : MonoBehaviour
     {
         // we are not the host. Connect to the address and await instructions from the host (turn order etc...)
 
-        if (m_client != null)
+        if (m_next != null)
         {
-            if (m_client.Connected)
+            if (m_next.Connected)
             {
                 Debug.Log("Client already connected");
             }
             else
             {
-                m_client.Shutdown(SocketShutdown.Both);
-                m_client.Close();
+                m_next.Shutdown(SocketShutdown.Both);
+                m_next.Close();
                 //m_client.Dispose();
-                m_client = null;
+                m_next = null;
             }
         }
 
         try 
         {
-            m_client = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            m_next = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
-            m_client.Connect(new IPEndPoint(address, 55555));
+            m_next.Connect(new IPEndPoint(address, 55555));
+            m_prev = m_next;
         }
         catch (SocketException ex)
         {
@@ -130,25 +163,33 @@ public class NetworkController : MonoBehaviour
             return false;
         }
 
+        // now we need to listen for transmissions from the host to tell us our playerID and how to fix up the ring buffer.
+
         return true;
     }
 
     // returns if it was successful in starting to listen. Can deal with the UI in a fancy way if we want (instead of crashing the app on random exceptions)
-    public bool ListenForConnections()
+    public bool ListenForConnections(int numberOfConnections)
     {
         // this means we're the host. Make a Server socket and accept a bunch of connections.
 
-        m_server_socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        List<Socket> sockets_connected = new List<Socket>();
 
+        Socket server_socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         try
         {
-            m_server_socket.Bind(new IPEndPoint(IPAddress.Any, 55555)); // 55555 because... Always 55555
-            m_server_socket.Listen(10);
+            server_socket.Bind(new IPEndPoint(IPAddress.Any, 55555)); // 55555 because... Always 55555
+            server_socket.Listen(10);
 
-            m_client = m_server_socket.Accept();
-            
-            m_server_socket.Close();
-            m_server_socket = null;
+            for (int i = 0; i < numberOfConnections; ++i)
+            {
+                sockets_connected.Add(server_socket.Accept());
+            }
+
+            server_socket.Close();
+            server_socket = null;
+
+            // now that we have all of our connections, form the ring buffer.
         }
         catch (SocketException ex)
         {
@@ -156,11 +197,61 @@ public class NetworkController : MonoBehaviour
             Debug.Log("Socket Exception. Message = (" + ex.Message + ")");
             Debug.Log("Stack trace = (" + ex.StackTrace + ")");
 
-            m_server_socket.Shutdown(SocketShutdown.Both);
-            m_server_socket.Close();
+            server_socket.Shutdown(SocketShutdown.Both);
+            server_socket.Close();
             //server_socket.Dispose();
 
             return false;
+        }
+
+        int numPlayers = sockets_connected.Count + 1;
+
+        if (numberOfConnections == 2)
+        {
+            // just me and you.
+            // hook up our prev and next to be the same guy.
+
+            m_prev = m_next = sockets_connected[0];
+
+            ConnectTransmission trans = new ConnectTransmission();
+            trans.numPlayers = numPlayers;
+            trans.playerID = 1;
+            trans.nextIPAddress = "";
+
+            PlayerInfo player = new PlayerInfo();
+            player.playerID = 1;
+            m_players.Add(player);
+
+            SendTransmission(trans);
+        }
+        else
+        {
+            int player_index = 1;
+            for (int i = 0; i < sockets_connected.Count; ++i)
+            {
+                ConnectTransmission trans = new ConnectTransmission();
+                trans.numPlayers = numPlayers;
+                trans.playerID = player_index;
+
+                if (i == 0)
+                {
+                    trans.nextIPAddress = "";
+                }
+                else
+                {
+                    IPEndPoint remoteIpEndPoint = sockets_connected[i - 1].RemoteEndPoint as IPEndPoint;
+                    trans.nextIPAddress = remoteIpEndPoint.Address.ToString();
+                }
+                
+
+                PlayerInfo player = new PlayerInfo();
+                player.playerID = player_index;
+                m_players.Add(player);
+
+                SendTransmission(trans);
+
+                player_index++;
+            }
         }
 
         return true;
@@ -175,20 +266,65 @@ public class NetworkController : MonoBehaviour
 
         string final_payload = JsonUtility.ToJson(infoObject);
 
-        return SendFullMessage(m_client, System.Text.Encoding.ASCII.GetBytes(final_payload));
+        return SendFullMessage(m_next, System.Text.Encoding.ASCII.GetBytes(final_payload));
     }
 
     
     public TransmissionInfo RetrieveTransmission()
     {
         byte[] data = null;
-        ReceiveFullMessage(m_client, out data);
+        ReceiveFullMessage(m_prev, out data);
 
         TransmissionInfo info = JsonUtility.FromJson<TransmissionInfo>(System.Text.Encoding.ASCII.GetString(data));
 
         return info;
     }
     
+
+    public void OnConnectTransmission(ConnectTransmission connectTransmission)
+    {
+        m_localPlayerInfo.playerID = connectTransmission.playerID;
+
+        if (connectTransmission.numPlayers > 2)
+        {
+            // need to patch up by listening and connecting.
+
+            if (connectTransmission.nextIPAddress != String.Empty)
+            {
+                // connect to that IP, and set next == to it.
+                
+                if (m_next != null)
+                {
+                    m_next.Shutdown(SocketShutdown.Both);
+                    m_next.Close();
+                    m_next = null;
+                }
+
+                IPAddress address = IPAddress.Parse(connectTransmission.nextIPAddress);
+
+                m_next = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                m_next.Connect(new IPEndPoint(address, 55555));
+
+                Debug.Log("Connected to next IP of " + connectTransmission.nextIPAddress);
+            }
+
+            // we're the last one to connect, therefor our prev is fine.
+            // just need to set next and don't bother listening
+            if (connectTransmission.numPlayers != m_localPlayerInfo.playerID - 1)
+            {
+                // listen for prev.
+                Socket server_socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+
+                server_socket.Bind(new IPEndPoint(IPAddress.Any, 55555)); // 55555 because... Always 55555
+                server_socket.Listen(10);
+
+                m_prev = server_socket.Accept();
+
+                server_socket.Close();
+                server_socket = null;
+            }
+        }
+    }
 
     // for now this will be blocking. Could change it to a system where it will accumulate a buffer and we can chew through each "full message" received.
     public static bool ReceiveFullMessage(Socket socket, out byte[] out_message)

@@ -13,12 +13,31 @@ public class FireBullet
     public float vx;
     public float vy;
     public float vz;
+
+    public void SetPosition(Vector3 pos)
+    {
+        x = pos.x;
+        y = pos.y;
+        z = pos.z;
+    }
+
+    public void SetVelocity(Vector3 vel)
+    {
+        vx = vel.x;
+        vy = vel.y;
+        vz = vel.z;
+    }
+
+    public Vector3 GetPosition()
+    {
+        return new Vector3(x, y, z);
+    }
+
+    public Vector3 GetVelocity()
+    {
+        return new Vector3(vx, vy, vz);
+    }
 }
 
 [Serializable]
 public class BulletNetworkEvent : UnityEvent<FireBullet> { }
-// perhaps... I should have the structure:
-
-// { "action" : "name_of_action", "nested_json" : "{......}" }
-// that nested_json will need to be re-fed into JsonUtility and switched on a map for the proper type.
-// should test this to make sure it works properly
