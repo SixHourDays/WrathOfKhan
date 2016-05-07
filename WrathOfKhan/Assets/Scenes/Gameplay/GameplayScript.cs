@@ -13,6 +13,9 @@ public class GameplayScript : MonoBehaviour
     //there are n ships for n players
     //this id binds this computer to one of those ships
     public int localPlayerIndex;
+
+    public GameObject playerShipPrefab;
+
     public PlayerShipScript GetLocalPlayer()
     {
         PlayerShipScript[] players = GetComponentsInChildren<PlayerShipScript>();
@@ -26,6 +29,13 @@ public class GameplayScript : MonoBehaviour
         }
 
         return null;
+    }
+
+    public void InstantiatePlayerObject(Vector3 position, int playerID)
+    {
+        GameObject newShip = (GameObject)GameObject.Instantiate(playerShipPrefab, position, new Quaternion());
+        newShip.transform.parent = transform; //make it sibling to the GameScene
+        newShip.GetComponent<PlayerShipScript>().playerID = playerID;
     }
 
     // Use this for initialization
@@ -51,8 +61,14 @@ public class GameplayScript : MonoBehaviour
             
             for (int i = 0; i < players.Count; ++i)
             {
+                GameObject spawnAnchor = GameObject.Find("Anchor" + players[i].playerID);
 
+                InstantiatePlayerObject(spawnAnchor.transform.position, players[i].playerID);
             }
+        }
+        else
+        {
+            InstantiatePlayerObject(GameObject.Find("Anchor1").transform.position, 0);
         }
     }
 
