@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 public class UIPowerControl : MonoBehaviour 
 {
-    public UIPowerSystem[] m_systems;
+    private UIPowerSystem[] m_systems;
     public Text m_txtPowerRemaining;
 
     private int m_availablePower = 5;
@@ -12,6 +12,11 @@ public class UIPowerControl : MonoBehaviour
 	// Use this for initialization
 	void Start () 
     {
+        m_systems = new UIPowerSystem[3];
+        m_systems[0] = this.transform.FindChild("Weapons").GetComponent<UIPowerSystem>();
+        m_systems[1] = this.transform.FindChild("Shields").GetComponent<UIPowerSystem>();
+        m_systems[2] = this.transform.FindChild("Engines").GetComponent<UIPowerSystem>();
+
         UpdateAvailablePower();
 	}
 	
@@ -27,6 +32,8 @@ public class UIPowerControl : MonoBehaviour
         Debug.Assert(m_availablePower >= 0);
 
         UpdateAvailablePower();
+
+        UIManager.Get().UpdateSystemPower(m_systems[0].m_power, m_systems[1].m_power, m_systems[2].m_power);
     }
 
     public int availablePower

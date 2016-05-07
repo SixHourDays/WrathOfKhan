@@ -79,4 +79,9 @@ public class UIManager : MonoBehaviour
     {
         SetPhaseTwoActive();
     }
+
+    public void UpdateSystemPower( int weaponPower, int shieldPower, int enginePower )
+    {
+
+    }
 }
