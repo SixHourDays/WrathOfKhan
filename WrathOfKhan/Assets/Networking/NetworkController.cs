@@ -14,7 +14,7 @@ using System;
 
 public class NetworkController : MonoBehaviour
 {
-    public struct PlayerInfo
+    public class PlayerInfo
     {
         public int playerID;
     }
@@ -42,16 +42,29 @@ public class NetworkController : MonoBehaviour
         return m_localPlayerInfo;
     }
 
+    public PlayerInfo GetPlayerInfo(int playerID)
+    {
+        if (m_localPlayerInfo.playerID == playerID)
+        {
+            return GetLocalPlayerInfo();
+        }
+
+        for (int i = 0; i < m_players.Count; ++i)
+        {
+            if (m_players[i].playerID == playerID)
+            {
+                return m_players[i];
+            }
+        }
+
+        return null;
+    }
+
     public List<PlayerInfo> GetRemotePlayerInfos()
     {
         return new List<PlayerInfo>(m_players);
     }
-
-    // Use this for initialization
-    void Start ()
-    {
-        
-	}
+    
 	
 	// Update is called once per frame
 	void Update ()
@@ -98,6 +111,8 @@ public class NetworkController : MonoBehaviour
     {
         bool shouldPropegate = true;
 
+        // I WOULD template this... but C# said fuck you to template functions.
+
         if (info.transmission_name == typeof(FireBullet).Name)
         {
             FireBullet temp = JsonUtility.FromJson<FireBullet>(info.transmission_payload);
@@ -128,6 +143,24 @@ public class NetworkController : MonoBehaviour
             }
 
             shouldPropegate = false;
+        }
+        else if (info.transmission_name == typeof(ShipMovedTransmission).Name)
+        {
+            ShipMovedTransmission temp = JsonUtility.FromJson<ShipMovedTransmission>(info.transmission_payload);
+
+            for (int i = 0; i < m_eventHandlers.Count; ++i)
+            {
+                m_eventHandlers[i].OnNetworkEvent(temp);
+            }
+        }
+        else if (info.transmission_name == typeof(DamageShipTransmission).Name)
+        {
+            DamageShipTransmission temp = JsonUtility.FromJson<DamageShipTransmission>(info.transmission_payload);
+
+            for (int i = 0; i < m_eventHandlers.Count; ++i)
+            {
+                m_eventHandlers[i].OnNetworkEvent(temp);
+            }
         }
         else
         {
@@ -163,6 +196,8 @@ public class NetworkController : MonoBehaviour
     public bool ConnectToHost(IPAddress address)
     {
         // we are not the host. Connect to the address and await instructions from the host (turn order etc...)
+
+        SendTransmission(new ShipMovedTransmission());
 
         // 1 because we are not the host
         m_localPlayerInfo.playerID = 1;

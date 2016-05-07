@@ -5,13 +5,11 @@ public class PlayerShipScript : MonoBehaviour
 {
     private NetworkController m_networkController = null;
 
-    //there are n PlayerShipScripts in the scene to represent each player
-    static int shipCount; //easy way to assign indices fixed on load order
-    public int shipIndex; //of the n indices, 1 will be the local player, and n-1 will be remote players
+    public int playerID; // the playerID that this ship represents. Needs to be set by the GameplayScript when this class is created.
 
     //this returns the one that is bound to the human playing on this computer
-    public bool isLocalPlayer() { return GameplayScript.Get().localPlayerIndex == shipIndex; }
-    public bool isRemotePlayer() { return GameplayScript.Get().localPlayerIndex != shipIndex; }
+    public bool isLocalPlayer() { return GameplayScript.Get().localPlayerIndex == playerID; }
+    public bool isRemotePlayer() { return GameplayScript.Get().localPlayerIndex != playerID; }
 
     public enum PlayerTurnSteps
     {
@@ -196,9 +194,6 @@ public class PlayerShipScript : MonoBehaviour
             m_networkController = loaderScene.GetComponent<NetworkController>();
         }
 
-
-        shipIndex = shipCount++;
-
         camera = FindObjectOfType<Camera>();
         Debug.Assert(camera != null);
 
@@ -382,16 +377,28 @@ public class PlayerShipScript : MonoBehaviour
     public float mass {  get { return GetComponent<Rigidbody2D>().mass; } }
     public Vector3 velocity;
 
-    public void OnBulletFired(FireBullet bullet)
+    void OnBulletFiredNetworkEvent(FireBullet transmission)
     {
-        Debug.Log("Fired a bullet at (" + bullet.x + ", " + bullet.y + ", " + bullet.z + ")");
+        if (transmission.player_id == playerID)
+        {
+            // this bullet fire is for us, simulate the bullet firing.
+        }
+    }
 
-        Vector3 vel = new Vector3(bullet.vx, bullet.vy, bullet.vz);
-        Vector3 pos = new Vector3(bullet.x, bullet.y, bullet.z);
+    void OnShipMovedNetworkEvent(ShipMovedTransmission transmission)
+    {
+        if (transmission.player_id == playerID)
+        {
+            // this is the ship that is supposed to move. Make it move.
+        }
+    }
 
-        GameObject torp = (GameObject)Instantiate(torpedoGO, pos, new Quaternion());
-        torp.transform.parent = transform.parent; //make it sibling to the ship
-        torp.GetComponent<TorpedoScript>().velocity = vel;
+    void OnShipDamagedNetworkEvent(DamageShipTransmission transmission)
+    {
+        if (transmission.player_id == playerID)
+        {
+            // this is the ship that is supposed to be damaged. Damage us.
+        }
     }
 
     void OnCollisionEnter2D(Collision2D col)
