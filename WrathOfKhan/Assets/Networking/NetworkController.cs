@@ -46,11 +46,6 @@ public class NetworkController : MonoBehaviour
 	void Update ()
     {
         HandleEvents();
-
-        if (Input.GetKeyDown(KeyCode.G))
-        {
-            SendTransmission(new FireBullet());
-        }
 	}
 
     private void HandleEvents()
