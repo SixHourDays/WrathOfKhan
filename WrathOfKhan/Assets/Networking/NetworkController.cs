@@ -15,9 +15,12 @@ public class NetworkController : MonoBehaviour
     Socket m_client = null;
     Socket m_server_socket = null;
 
+    bool m_shouldHandleEvents = true;
+
     const int m_recv_buffer_size = 1024 * 1024;
     static byte[] s_recv_buffer = new byte[m_recv_buffer_size];
-    
+
+    List<NetworkEventHandler> m_eventHandlers = new List<NetworkEventHandler>();
 
     // Use this for initialization
     void Start ()
@@ -28,8 +31,65 @@ public class NetworkController : MonoBehaviour
 	// Update is called once per frame
 	void Update ()
     {
-        
+        HandleEvents();
 	}
+
+    private void HandleEvents()
+    {
+        if (!m_shouldHandleEvents)
+        {
+            return;
+        }
+
+        if (m_client.Available > 0)
+        {
+            // we have data, go grab it.
+
+            TransmissionInfo info = RetrieveTransmission();
+            DispatchEvent(info);
+        }
+    }
+
+
+    private void DispatchEvent(TransmissionInfo info)
+    {
+        if (info.transmission_name == typeof(FireBullet).Name)
+        {
+            FireBullet temp = JsonUtility.FromJson<FireBullet>(info.transmission_payload);
+            
+            for (int i = 0; i < m_eventHandlers.Count; ++i)
+            {
+                m_eventHandlers[i].OnNetworkEvent(temp);
+            }
+        }
+        else
+        {
+            Debug.LogError("Unhandled transmission type");
+        }
+    }
+
+    public void PauseEventHandling()
+    {
+        m_shouldHandleEvents = false;
+    }
+
+    public void ResumeEventHandling()
+    {
+        m_shouldHandleEvents = true;
+    }
+
+    public void AddEventHandler(NetworkEventHandler handler)
+    {
+        m_eventHandlers.Add(handler);
+    }
+
+    public void RemoveEventHandler(NetworkEventHandler handler)
+    {
+        if (!m_eventHandlers.Remove(handler))
+        {
+            Debug.LogError("Could not find event handler to remove.");
+        }
+    }
 
     public bool ConnectToHost(IPAddress address)
     {
@@ -100,6 +160,30 @@ public class NetworkController : MonoBehaviour
 
         return true;
     }
+
+    public bool SendTransmission(object transmissionObject)
+    {
+        TransmissionInfo infoObject = new TransmissionInfo();
+
+        infoObject.transmission_name = transmissionObject.GetType().Name;
+        infoObject.transmission_payload = JsonUtility.ToJson(transmissionObject);
+
+        string final_payload = JsonUtility.ToJson(infoObject);
+
+        return SendFullMessage(m_client, System.Text.Encoding.ASCII.GetBytes(final_payload));
+    }
+
+    
+    public TransmissionInfo RetrieveTransmission()
+    {
+        byte[] data = null;
+        ReceiveFullMessage(m_client, out data);
+
+        TransmissionInfo info = JsonUtility.FromJson<TransmissionInfo>(System.Text.Encoding.ASCII.GetString(data));
+
+        return info;
+    }
+    
 
     // for now this will be blocking. Could change it to a system where it will accumulate a buffer and we can chew through each "full message" received.
     public static bool ReceiveFullMessage(Socket socket, out byte[] out_message)
