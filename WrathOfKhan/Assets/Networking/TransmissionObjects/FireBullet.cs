@@ -6,9 +6,13 @@ using UnityEngine.Events;
 [Serializable]
 public class FireBullet 
 {
-    public int x;
-    public int y;
-    public int z;
+    public float x;
+    public float y;
+    public float z;
+
+    public float vx;
+    public float vy;
+    public float vz;
 }
 
 [Serializable]

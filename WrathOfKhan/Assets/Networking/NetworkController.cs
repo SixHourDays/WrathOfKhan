@@ -41,6 +41,11 @@ public class NetworkController : MonoBehaviour
             return;
         }
 
+        if (m_client == null)
+        {
+            return;
+        }
+
         if (m_client.Available > 0)
         {
             // we have data, go grab it.

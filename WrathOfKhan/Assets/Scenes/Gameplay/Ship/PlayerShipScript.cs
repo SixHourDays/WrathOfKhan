@@ -167,8 +167,30 @@ public class PlayerShipScript : MonoBehaviour {
             //shoot!
             if (Input.GetMouseButtonDown(0))
             {
+                Vector3 velocity = aimerDir * torpedoVelo;
                 GameObject torp = (GameObject)Instantiate(torpedoGO, aimerStart, new Quaternion());
-                torp.GetComponent<TorpedoScript>().velocity = aimerDir * torpedoVelo;
+                torp.GetComponent<TorpedoScript>().velocity = velocity;
+
+                GameObject loaderScene = GameObject.Find("LoaderScene");
+                if (loaderScene)
+                {
+                    NetworkController controller = loaderScene.GetComponent<NetworkController>();
+                    if (controller)
+                    {
+                        FireBullet bullet = new FireBullet();
+
+                        bullet.x = aimerStart.x;
+                        bullet.y = aimerStart.y;
+                        bullet.z = aimerStart.z;
+
+                        bullet.vx = velocity.x;
+                        bullet.vy = velocity.y;
+                        bullet.vz = velocity.z;
+
+                        controller.SendTransmission(bullet);
+                    }
+                }
+
                 flying = true;
                 for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(false); }
             }
@@ -186,6 +208,17 @@ public class PlayerShipScript : MonoBehaviour {
 
     public float mass {  get { return GetComponent<Rigidbody2D>().mass; } }
     public Vector3 velocity;
+
+    public void OnBulletFired(FireBullet bullet)
+    {
+        Debug.Log("Fired a bullet at (" + bullet.x + ", " + bullet.y + ", " + bullet.z + ")");
+
+        Vector3 vel = new Vector3(bullet.vx, bullet.vy, bullet.vz);
+        Vector3 pos = new Vector3(bullet.x, bullet.y, bullet.z);
+
+        GameObject torp = (GameObject)Instantiate(torpedoGO, pos, new Quaternion());
+        torp.GetComponent<TorpedoScript>().velocity = vel;
+    }
 
     void OnCollisionEnter2D(Collision2D col)
     {
