@@ -3,13 +3,42 @@ using System.Collections;
 
 public class PlayerShipScript : MonoBehaviour {
 
-	// Use this for initialization
-	void Start () {
+    public enum PlayerTurnSteps
+    {
+        WaitForTurn,
+        SetPowerLevels,
+        ChooseAction,
+        FireWeapons,
+        ShieldsUp,
+        EngageEngines,
+        LongRangeSensors,
+        EngageCloak,
+    };
+
+    public PlayerTurnSteps turnStep = PlayerTurnSteps.WaitForTurn;
+    Camera camera; //finds out scene cam
+
+    //ui state
+    int uiWeaponPower = 1; //start em off
+    int uiShieldPower = 1;
+    int uiEnginePower = 3;
+    int uiSensorPower = 0;
+    int uiCloakPower = 0;
+
+    //player state (relevant across all turns)
+    bool heavyTorpedos = false; //start em off
+    int torpedosRemaining = 0;
+    float shieldsRemaining = 0.0f; //normalized so we can tune
+    float enginesRemaining = 0.0f; //noralized so we can tune
+    int sensorsTurnAge = 0; //some number of turns to fade them off
+    bool cloaked = false;
+
+    // Use this for initialization
+    void Start () {
         camera = FindObjectOfType<Camera>();
         Debug.Assert(camera != null);
     }
 
-    Camera camera;
     public GameObject torpedoGO;
     public GameObject aimerDotGO;
     public int aimerDotCount;
@@ -20,6 +49,78 @@ public class PlayerShipScript : MonoBehaviour {
 
 	// Update is called once per frame
 	void Update () {
+
+        switch (turnStep)
+        {
+            case PlayerTurnSteps.WaitForTurn:
+                {
+                    //keep processing:
+                    //can view heatmap during all this!
+                    //can see incoming fire at your ship, their movements
+
+                    //HACKJEFFGIFFEN i am THE player
+                    turnStep = PlayerTurnSteps.SetPowerLevels;
+                    break;
+                }
+            case PlayerTurnSteps.SetPowerLevels:
+                {
+                    //todo
+                    //unlock powerbar UI
+                    //draw guides (shield strength, move ranges)
+                    //get back power levels from it
+
+                    weaponPower = 1;
+                    shieldPower = 2;
+                    enginePower = 3;
+
+                    turnStep = PlayerTurnSteps.ChooseAction;
+                    break;
+                }
+            case PlayerTurnSteps.ChooseAction:
+                {
+                    if ( weaponPower)
+                    //todo
+                    //lock powerbar UI
+                    //unlock power order UI
+                    //get back which power,
+
+                    turnStep = PlayerTurnSteps.FireWeapons;
+                    //turnStep = PlayerTurnSteps.ShieldsUp;
+                    //turnStep = PlayerTurnSteps.EngageEngines;
+                    //turnStep = PlayerTurnSteps.LongRangeSensors;
+                    //turnStep = PlayerTurnSteps.EngageCloak;
+                    break;
+                }
+            case PlayerTurnSteps.FireWeapons:
+                {
+                    //todo
+                    //lock power order UI
+                    //do move range picker, or torpedo aimer, or scan sweep overlay, 
+                    //then actally move, shoot, or scan
+                    
+                    //finally - check for any remaining actions, and loop, or out.
+                    break;
+                }
+            case PlayerTurnSteps.ShieldsUp:
+                {
+
+                    break;
+                }
+            case PlayerTurnSteps.EngageEngines:
+                {
+
+                    break;
+                }
+            case PlayerTurnSteps.LongRangeSensors:
+                {
+
+                    break;
+                }
+            case PlayerTurnSteps.EngageCloak:
+                {
+                    break;
+                }
+        }
 
         //toggle between flight mode and aimNShoot mode
         if (Input.GetKeyDown(KeyCode.Space))

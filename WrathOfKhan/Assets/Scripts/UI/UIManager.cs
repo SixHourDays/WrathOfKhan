@@ -75,13 +75,18 @@ public class UIManager : MonoBehaviour
         m_phase2.SetActive(true);
     }
 
+    int[] powerLevel; //weapon, shield, engine, special
+
     public void CommitPower()
     {
         SetPhaseTwoActive();
+        
     }
 
     public void UpdateSystemPower( int weaponPower, int shieldPower, int enginePower )
     {
-
+        powerLevel[0] = weaponPower;
+        powerLevel[1] = shieldPower;
+        powerLevel[2] = enginePower;
     }
 }
