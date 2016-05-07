@@ -32,7 +32,10 @@ public class GameplayScript : MonoBehaviour
             Debug.LogError("Failed to find LoaderScene. Should always be present");
         }
 
-        localPlayerIndex = m_networkController.GetLocalPlayerInfo().playerID;
+        if (m_networkController)
+        {
+            localPlayerIndex = m_networkController.GetLocalPlayerInfo().playerID;
+        }
 
         if (localPlayerIndex == 0)
         {
