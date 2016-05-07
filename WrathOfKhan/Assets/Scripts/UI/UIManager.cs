@@ -11,8 +11,6 @@ public class UIManager : MonoBehaviour
     private UISection m_phase1;
     private UISection m_phase2;
 
-    private bool m_init = false;
-
     public void Start()
     {
         Transform hudObj = this.transform.FindChild("HUD");
@@ -20,15 +18,14 @@ public class UIManager : MonoBehaviour
         Debug.Assert(m_phase1 != null);
         m_phase2 = hudObj.FindChild("Phase_2").GetComponent<UISection>();
         Debug.Assert(m_phase2 != null);
+
+        //wait for turn to enable
+        SetPhasesInactive();
     }
 
     public void Update()
     {
-        if(!m_init)
-        {
-            SetPhaseOneActive();
-            m_init = true;
-        }
+
     }
 
     public static UIManager Get()
@@ -63,6 +60,12 @@ public class UIManager : MonoBehaviour
         return GetSprite(m_fullPowerMouseOverTexture);
     }
 
+    public void SetPhasesInactive()
+    {
+        m_phase1.SetActive(false);
+        m_phase2.SetActive(false);
+    }
+
     public void SetPhaseOneActive()
     {
         m_phase1.SetActive(true);
@@ -75,14 +78,23 @@ public class UIManager : MonoBehaviour
         m_phase2.SetActive(true);
     }
 
-    int[] powerLevel; //weapon, shield, engine, special
+    int[] powerLevel = new int[3]; //weapon, shield, engine, special
+    public int GetPowerLevel(int i) { return powerLevel[i]; }
 
     public void CommitPower()
     {
-        SetPhaseTwoActive();
-        PlayerShipScript.UIState powerState = new PlayerShipScript.UIState(powerLevel[0], powerLevel[1], powerLevel[2], 0, 0); //TODO STEVE add the appropriate 4th here, based on race (fed/emp)
-        GameplayScript.Get().GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.SetPowerLevels, powerState);
+        GameplayScript.Get().GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.SetPowerLevels);
     }
+
+    public void ShootButtonDown()
+    {
+        GameplayScript.Get().GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.FireWeapons);
+    }
+
+    public void MoveButtonDown()
+    {
+        GameplayScript.Get().GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.EngageEngines);
+    } 
 
     public void UpdateSystemPower( int weaponPower, int shieldPower, int enginePower )
     {

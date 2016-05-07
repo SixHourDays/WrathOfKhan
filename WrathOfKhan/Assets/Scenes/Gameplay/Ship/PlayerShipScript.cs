@@ -36,15 +36,86 @@ public class PlayerShipScript : MonoBehaviour {
         public UIState(int wep, int shld, int eng, int sens, int clk)
         { weaponPower = wep; shieldPower = shld; enginePower = eng; sensorPower = sens; cloakPower = clk; }
     };
-    UIState m_uiState = new UIState(1, 1, 3, 0, 0); //sum of 5
+    public UIState m_uiState = new UIState(1, 1, 3, 0, 0); //sum of 5
 
-    public void CommitTurnStep(PlayerTurnSteps step, UIState uiState)
+    //return events forwarding the turn
+    //any 'do once' code lives here
+    public void CommitTurnStep(PlayerTurnSteps step)
     {
-        m_uiState = uiState;
-    }
-    
-    //...
+        switch (step)
+        {
+            case PlayerTurnSteps.WaitForTurn:
+                {
+                    Debug.Log("Commit end of WaitForTurn");
 
+                    turnStep = PlayerTurnSteps.SetPowerLevels;
+                    Debug.Log("Start SetPowerLevels");
+
+                    UIManager.Get().SetPhaseOneActive();
+                    break;
+                }
+            case PlayerTurnSteps.SetPowerLevels:
+                {
+                    //get back power levels from it
+                    m_uiState.weaponPower = UIManager.Get().GetPowerLevel(0);
+                    m_uiState.shieldPower = UIManager.Get().GetPowerLevel(1);
+                    m_uiState.enginePower = UIManager.Get().GetPowerLevel(2);
+
+                    Debug.Log("Commit end of SetPowerLevels" + m_uiState.weaponPower + " " + m_uiState.shieldPower + " " + m_uiState.enginePower);
+
+                    turnStep = PlayerTurnSteps.ChooseAction;
+                    Debug.Log("Start ChooseAction");
+
+                    UIManager.Get().SetPhaseTwoActive();
+                    break;
+                }
+            case PlayerTurnSteps.ChooseAction:
+                {
+                    Debug.Log("senseless!");
+                    //  if ( weaponPower)
+                    //todo
+                    //lock powerbar UI
+                    //unlock power order UI
+                    //get back which power,
+
+                    //turnStep = PlayerTurnSteps.FireWeapons;
+                    //turnStep = PlayerTurnSteps.ShieldsUp;
+                    //turnStep = PlayerTurnSteps.EngageEngines;
+                    //turnStep = PlayerTurnSteps.LongRangeSensors;
+                    //turnStep = PlayerTurnSteps.EngageCloak;
+                    break;
+                }
+            case PlayerTurnSteps.FireWeapons:
+                {
+                    Debug.Log("fireWeapons");
+
+                    //finally - check for any remaining actions, and loop, or out.
+                    break;
+                }
+            case PlayerTurnSteps.ShieldsUp:
+                {
+
+                    break;
+                }
+            case PlayerTurnSteps.EngageEngines:
+                {
+                    Debug.Log("engageEngines");
+
+                    break;
+                }
+            case PlayerTurnSteps.LongRangeSensors:
+                {
+
+                    break;
+                }
+            case PlayerTurnSteps.EngageCloak:
+                {
+                    break;
+                }
+
+        }
+
+    }
 
     //player state (relevant across all turns)
     struct ShipState
@@ -79,8 +150,10 @@ public class PlayerShipScript : MonoBehaviour {
     Camera camera; //finds out scene cam
 
     // Update is called once per frame
-    void Update () {
+    void Update ()
+    {
 
+        //this is a step by step sequence: init / live things are done here, and 'do once' / 'go to next' actions are done in CommitTurnStep above.
         switch (turnStep)
         {
             case PlayerTurnSteps.WaitForTurn:
@@ -89,19 +162,17 @@ public class PlayerShipScript : MonoBehaviour {
                     //can view heatmap during all this!
                     //can see incoming fire at your ship, their movements
 
-                    //HACKJEFFGIFFEN dan you can spin until GameplayScrip.turn == ShipObject id == players id
-                    turnStep = PlayerTurnSteps.SetPowerLevels;
+                    //HACKJEFFGIFFEN
+                    UIManager.Get().SetPhasesInactive(); //sets the actions HUD to ghosted while we wait
+
+                    //spins until GameplayScript notifies it's our turn
                     break;
                 }
             case PlayerTurnSteps.SetPowerLevels:
                 {
                     //todo
-                    //unlock powerbar UI
                     //draw guides (shield strength, move ranges)
-                    //get back power levels from it
-
-
-                    turnStep = PlayerTurnSteps.ChooseAction;
+                    //spins until UIManager callsback a CommitTurnStep
                     break;
                 }
             case PlayerTurnSteps.ChooseAction:
@@ -112,11 +183,7 @@ public class PlayerShipScript : MonoBehaviour {
                     //unlock power order UI
                     //get back which power,
 
-                    //turnStep = PlayerTurnSteps.FireWeapons;
-                    //turnStep = PlayerTurnSteps.ShieldsUp;
-                    turnStep = PlayerTurnSteps.EngageEngines;
-                    //turnStep = PlayerTurnSteps.LongRangeSensors;
-                    //turnStep = PlayerTurnSteps.EngageCloak;
+                    
                     break;
                 }
             case PlayerTurnSteps.FireWeapons:
@@ -167,6 +234,7 @@ public class PlayerShipScript : MonoBehaviour {
                         fired = true;
                         Vector3 velocity = aimerDir * torpedoVelo;
                         GameObject torp = (GameObject)Instantiate(torpedoGO, aimerStart, new Quaternion());
+                        torp.transform.parent = transform.parent; //make it sibling to the ship
                         torp.GetComponent<TorpedoScript>().velocity = velocity;
 
                         GameObject loaderScene = GameObject.Find("LoaderScene");
@@ -252,6 +320,7 @@ public class PlayerShipScript : MonoBehaviour {
         Vector3 pos = new Vector3(bullet.x, bullet.y, bullet.z);
 
         GameObject torp = (GameObject)Instantiate(torpedoGO, pos, new Quaternion());
+        torp.transform.parent = transform.parent; //make it sibling to the ship
         torp.GetComponent<TorpedoScript>().velocity = vel;
     }
 

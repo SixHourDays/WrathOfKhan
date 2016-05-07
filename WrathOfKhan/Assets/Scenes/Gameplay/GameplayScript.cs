@@ -22,9 +22,16 @@ public class GameplayScript : MonoBehaviour {
 
         localPlayerIndex = 0; //DAN!!!
 	}
-	
-	// Update is called once per frame
+
+    // Update is called once per frame
+    int dumbCount = 0;
 	void Update () {
 	
+        //FAKE SYNC
+        //wait 500 frames then END waiting for turn;
+        if ( ++dumbCount == 250 )
+        {
+            GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.WaitForTurn);
+        }
 	}
 }
