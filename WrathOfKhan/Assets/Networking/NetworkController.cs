@@ -206,7 +206,7 @@ public class NetworkController : MonoBehaviour
 
         int numPlayers = sockets_connected.Count + 1;
 
-        if (numberOfConnections == 2)
+        if (numPlayers == 2)
         {
             // just me and you.
             // hook up our prev and next to be the same guy.
@@ -241,6 +241,7 @@ public class NetworkController : MonoBehaviour
                 {
                     IPEndPoint remoteIpEndPoint = sockets_connected[i - 1].RemoteEndPoint as IPEndPoint;
                     trans.nextIPAddress = remoteIpEndPoint.Address.ToString();
+                    Debug.Log("Sending IP Address of " + trans.nextIPAddress);
                 }
                 
 
@@ -292,7 +293,9 @@ public class NetworkController : MonoBehaviour
             if (connectTransmission.nextIPAddress != String.Empty)
             {
                 // connect to that IP, and set next == to it.
-                
+
+                Debug.Log("Received next IP Address of " + connectTransmission.nextIPAddress);
+
                 if (m_next != null)
                 {
                     m_next.Shutdown(SocketShutdown.Both);

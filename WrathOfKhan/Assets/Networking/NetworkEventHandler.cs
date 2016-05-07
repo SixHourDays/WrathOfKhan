@@ -45,10 +45,6 @@ public class NetworkEventHandler : MonoBehaviour
                 Debug.LogError("Failed to find NetworkController on LoaderScene object.");
             }
         }
-        else
-        {
-            Debug.LogError("Failed to find LoaderScene. Should always be present");
-        }
     }
 
     public void OnNetworkEvent(FireBullet bullet)
@@ -61,7 +57,7 @@ public class NetworkEventHandler : MonoBehaviour
 
     public void OnNetworkEvent(ConnectTransmission transmission)
     {
-        if (bulletNetworkEvent != null)
+        if (connectTransmissionEvent != null)
         {
             connectTransmissionEvent.Invoke(transmission);
         }

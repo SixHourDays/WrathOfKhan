@@ -7,7 +7,8 @@ using System.Net;
 
 public class NetworkSelector : MonoBehaviour
 {
-    public InputField field;
+    public InputField ipAddressField;
+    public InputField numberOfPlayersField;
 
     private NetworkController m_controller;
     private LoaderScript m_loader;
@@ -32,10 +33,10 @@ public class NetworkSelector : MonoBehaviour
         // find the Network Controller and call corresponding function.
         // need to dig out the IP Address from the text box.
 
-        if (field != null)
+        if (ipAddressField != null)
         {
             IPAddress ipaddress = null;
-            bool success = IPAddress.TryParse(field.text, out ipaddress);
+            bool success = IPAddress.TryParse(ipAddressField.text, out ipaddress);
 
             if (success)
             {
@@ -67,22 +68,37 @@ public class NetworkSelector : MonoBehaviour
 
     public void HostGame()
     {
-        if (m_controller != null && m_loader != null)
+        if (numberOfPlayersField == null)
         {
-            bool success = m_controller.ListenForConnections(1);
+            Debug.LogError("NumberOfPlayersField is not set.");
+            return;
+        }
 
-            if (success)
+        int numPlayers = 0;
+
+        if (int.TryParse(numberOfPlayersField.text, out numPlayers) && numPlayers > 1)
+        {
+            if (m_controller != null && m_loader != null)
             {
-                m_loader.SwitchToSceneNamed("GameplayScene");
+                bool success = m_controller.ListenForConnections(numPlayers - 1);
+
+                if (success)
+                {
+                    m_loader.SwitchToSceneNamed("GameplayScene");
+                }
+                else
+                {
+                    Debug.Log("Failed to Retrieve all connections");
+                }
             }
             else
             {
-                Debug.Log("Failed to Retrieve all connections");
+                Debug.LogError("Failed to find NetworkController or LoaderScript on LoaderScene object.");
             }
         }
         else
         {
-            Debug.LogError("Failed to find NetworkController or LoaderScript on LoaderScene object.");
+            numberOfPlayersField.text = "";
         }
     }
 
