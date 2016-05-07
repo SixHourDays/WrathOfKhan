@@ -16,27 +16,16 @@ public class PlayerShipScript : MonoBehaviour {
         WaitForTurn,
         SetPowerLevels,
         ChooseAction,
-        FireWeapons,    //start of actions
+        AimWeapons, //start of actions //fire seequence 1
+        FireWeapons,    //fire sequence 2
         ShieldsUp,
-        EngageEngines,
+        AimEngines, //engines 1
+        EngageEngines, //engines 2
         LongRangeSensors,
         EngageCloak,
     };
 
     public PlayerTurnSteps turnStep = PlayerTurnSteps.WaitForTurn;
-
-    //ui state
-    public struct UIState
-    {
-        public int weaponPower; //start em off
-        public int shieldPower;
-        public int enginePower;
-        public int sensorPower;
-        public int cloakPower;
-        public UIState(int wep, int shld, int eng, int sens, int clk)
-        { weaponPower = wep; shieldPower = shld; enginePower = eng; sensorPower = sens; cloakPower = clk; }
-    };
-    public UIState m_uiState = new UIState(1, 1, 3, 0, 0); //sum of 5
 
     //return events forwarding the turn
     //any 'do once' code lives here
@@ -57,39 +46,78 @@ public class PlayerShipScript : MonoBehaviour {
             case PlayerTurnSteps.SetPowerLevels:
                 {
                     //get back power levels from it
-                    m_uiState.weaponPower = UIManager.Get().GetPowerLevel(0);
-                    m_uiState.shieldPower = UIManager.Get().GetPowerLevel(1);
-                    m_uiState.enginePower = UIManager.Get().GetPowerLevel(2);
+                    m_shipState.torpedosRemaining = UIManager.Get().GetPowerLevel(0);
+                    m_shipState.shieldsRemaining = UIManager.Get().GetPowerLevel(1);
+                    m_shipState.enginesRemaining = UIManager.Get().GetPowerLevel(2);
+                    Debug.Log( "Commit end of SetPowerLevels" + m_shipState.torpedosRemaining + " " + m_shipState.shieldsRemaining + " " + m_shipState.enginesRemaining );
+                    //TODO toggle UI with avaiable buttons for powers picked
 
-                    Debug.Log("Commit end of SetPowerLevels" + m_uiState.weaponPower + " " + m_uiState.shieldPower + " " + m_uiState.enginePower);
+                    //internal log of chosen state
+                    turnStep = ChooseOrDone();
 
-                    turnStep = PlayerTurnSteps.ChooseAction;
-                    Debug.Log("Start ChooseAction");
-
-                    UIManager.Get().SetPhaseTwoActive();
                     break;
                 }
             case PlayerTurnSteps.ChooseAction:
                 {
-                    Debug.Log("senseless!");
-                    //  if ( weaponPower)
-                    //todo
-                    //lock powerbar UI
-                    //unlock power order UI
-                    //get back which power,
+                    //UI choose which action to do
+                    UIManager.Get().SetPhasesInactive();
+                    Debug.Log("commit action" + UIManager.Get().actionChoice);
 
-                    //turnStep = PlayerTurnSteps.FireWeapons;
-                    //turnStep = PlayerTurnSteps.ShieldsUp;
-                    //turnStep = PlayerTurnSteps.EngageEngines;
-                    //turnStep = PlayerTurnSteps.LongRangeSensors;
-                    //turnStep = PlayerTurnSteps.EngageCloak;
+                    Debug.Log("start action");
+                    turnStep = UIManager.Get().actionChoice;
+                    break;
+                }
+            case PlayerTurnSteps.AimWeapons:
+                {
+                    Debug.Log("end aimWeapons");
+                    //aimer dots off
+                    for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(false); }
+
+                    turnStep = PlayerTurnSteps.FireWeapons;
+
+                    //shoot!
+                    Debug.Log("torpedo flight");
+
+                    m_shipState.torpedosRemaining -= 1;
+                    //will use aimerPos and aimerVelo from AimWeapons phase
+                    firedTorpedo = (GameObject)Instantiate(torpedoGO, aimerPos, new Quaternion());
+                    firedTorpedo.transform.parent = transform.parent; //make it sibling to the ship
+                    firedTorpedo.GetComponent<TorpedoScript>().velocity = aimerVelo;
+                    /*GameObject loaderScene = GameObject.Find("LoaderScene");
+                    if (loaderScene)
+                    {
+                        NetworkController controller = loaderScene.GetComponent<NetworkController>();
+                        if (controller)
+                        {
+                            FireBullet bullet = new FireBullet();
+
+                            bullet.x = aimerStart.x;
+                            bullet.y = aimerStart.y;
+                            bullet.z = aimerStart.z;
+
+                            bullet.vx = velocity.x;
+                            bullet.vy = velocity.y;
+                            bullet.vz = velocity.z;
+
+                            controller.SendTransmission(bullet);
+                        }
+                    }*/
                     break;
                 }
             case PlayerTurnSteps.FireWeapons:
                 {
-                    Debug.Log("fireWeapons");
-
-                    //finally - check for any remaining actions, and loop, or out.
+                    Debug.Log("end flight");
+                    //return to aiming if more torps
+                    if ( m_shipState.torpedosRemaining > 0 )
+                    {
+                        turnStep = PlayerTurnSteps.AimWeapons;
+                    }
+                    else
+                    {
+                        //return to power choice if any left
+                        //elsewise end turn
+                        turnStep = ChooseOrDone();
+                    }
                     break;
                 }
             case PlayerTurnSteps.ShieldsUp:
@@ -99,7 +127,10 @@ public class PlayerShipScript : MonoBehaviour {
                 }
             case PlayerTurnSteps.EngageEngines:
                 {
-                    Debug.Log("engageEngines");
+                    UIManager.Get().SetPhasesInactive();
+
+                    Debug.Log("chosen engageEngines");
+                    turnStep = PlayerTurnSteps.FireWeapons;
 
                     break;
                 }
@@ -131,7 +162,22 @@ public class PlayerShipScript : MonoBehaviour {
     };
     ShipState m_shipState = new ShipState(false, 0, 0.0f, 0.0f, 0, false);
 
-    
+    PlayerTurnSteps ChooseOrDone()
+    {
+        if (m_shipState.torpedosRemaining > 0 || m_shipState.shieldsRemaining > 0 || m_shipState.enginesRemaining > 0)
+        {
+            Debug.Log("Start ChooseAction");
+            UIManager.Get().SetPhaseTwoActive();
+            return PlayerTurnSteps.ChooseAction;
+        }
+        else
+        {
+            Debug.Log("End turn");
+            UIManager.Get().SetPhasesInactive();
+            return PlayerTurnSteps.WaitForTurn;
+        }
+    }
+
 
     // Use this for initialization
     void Start () {
@@ -140,12 +186,24 @@ public class PlayerShipScript : MonoBehaviour {
 
         camera = FindObjectOfType<Camera>();
         Debug.Assert(camera != null);
+
+        for (int i = 0; i < aimerDotCount; ++i)
+        {
+            GameObject dotChild = Instantiate(aimerDotGO);
+            dotChild.transform.parent = transform;
+            dotChild.SetActive(false);
+        }
     }
 
     public GameObject torpedoGO;
     public GameObject aimerDotGO;
     public int aimerDotCount;
     public float torpedoVelo;
+
+    //state across Firing/Fired
+    Vector3 aimerPos;
+    Vector3 aimerVelo;
+    GameObject firedTorpedo;
 
     Camera camera; //finds out scene cam
 
@@ -177,47 +235,29 @@ public class PlayerShipScript : MonoBehaviour {
                 }
             case PlayerTurnSteps.ChooseAction:
                 {
-                  //  if ( weaponPower)
                     //todo
-                    //lock powerbar UI
-                    //unlock power order UI
-                    //get back which power,
-
-                    
+                    //spins until UIManager callsback a CommitTurnStep
                     break;
                 }
-            case PlayerTurnSteps.FireWeapons:
+            case PlayerTurnSteps.AimWeapons:
                 {
-                    //todo
-                    //lock power order UI
-                    //do move range picker, or torpedo aimer, or scan sweep overlay, 
-                    //then actally move, shoot, or scan
-
-                    //keeps dot count matched to public int
-                    int toSpawn = aimerDotCount - transform.childCount;
-                    if (toSpawn > 0)
+                    //aimer dots on
+                    if (!transform.GetChild(0).gameObject.activeSelf)
                     {
-                        for (int i = 0; i < toSpawn; ++i)
-                        {
-                            GameObject dotChild = Instantiate(aimerDotGO);
-                            dotChild.transform.parent = transform;
-                            dotChild.SetActive(true);
-                        }
-                    }
-                    else if (toSpawn < 0)
-                    {
-                        for (int i = transform.childCount - 1; i >= aimerDotCount; --i) { GameObject.Destroy(transform.GetChild(i)); }
+                        Debug.Log("Aimweapons start");
+                        for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(true); }
                     }
 
                     //dot aimer
-                    Vector3 aimerPos = camera.ScreenToWorldPoint(Input.mousePosition);
-                    aimerPos.z = 0; //need 0 to get normalized in 2d
-                    Vector3 aimerDir = (aimerPos - transform.position).normalized;
-                    Vector3 aimerStart = transform.position + aimerDir * (GetComponent<CircleCollider2D>().radius + 0.1f); //step outside
+                    Vector3 mousePos = camera.ScreenToWorldPoint(Input.mousePosition);
+                    mousePos.z = 0; //need 0 to get normalized in 2d
+                    Vector3 mouseDir = (mousePos - transform.position).normalized;
+                    aimerPos = transform.position + mouseDir * (GetComponent<CircleCollider2D>().radius + 0.2f); //step outside
+                    aimerVelo = mouseDir * torpedoVelo;
 
                     //iterate n fixed steps
-                    Vector3 stepPos = aimerStart;
-                    Vector3 stepVelo = aimerDir * torpedoVelo;
+                    Vector3 stepPos = aimerPos;
+                    Vector3 stepVelo = aimerVelo;
                     for (int i = 0; i < aimerDotCount; ++i)
                     {
                         Vector3 gravForce = TorpedoScript.GetNBodyForceAtPos(stepPos);
@@ -227,47 +267,23 @@ public class PlayerShipScript : MonoBehaviour {
                         transform.GetChild(i).transform.position = stepPos;
                     }
 
-                    bool fired = false;
                     //shoot!
                     if (Input.GetMouseButtonDown(0))
                     {
-                        fired = true;
-                        Vector3 velocity = aimerDir * torpedoVelo;
-                        GameObject torp = (GameObject)Instantiate(torpedoGO, aimerStart, new Quaternion());
-                        torp.transform.parent = transform.parent; //make it sibling to the ship
-                        torp.GetComponent<TorpedoScript>().velocity = velocity;
-
-                        GameObject loaderScene = GameObject.Find("LoaderScene");
-                        if (loaderScene)
-                        {
-                            NetworkController controller = loaderScene.GetComponent<NetworkController>();
-                            if (controller)
-                            {
-                                FireBullet bullet = new FireBullet();
-
-                                bullet.x = aimerStart.x;
-                                bullet.y = aimerStart.y;
-                                bullet.z = aimerStart.z;
-
-                                bullet.vx = velocity.x;
-                                bullet.vy = velocity.y;
-                                bullet.vz = velocity.z;
-
-                                controller.SendTransmission(bullet);
-                            }
-                        }
+                        CommitTurnStep(PlayerTurnSteps.AimWeapons);
                     }
                     
-                    //toggle between flight mode and aimNShoot mode
-                    if (fired || Input.GetKeyDown(KeyCode.Space))
-                    {
-                        turnStep = PlayerTurnSteps.EngageEngines;
-                        for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(false); }
-                    }
-
-                  //finally - check for any remaining actions, and loop, or out.
-                  break;
+                    break;
               }
+            case PlayerTurnSteps.FireWeapons:
+                {
+                    //listen for our torpedo to die
+                    if (firedTorpedo == null)
+                    {
+                        CommitTurnStep(PlayerTurnSteps.FireWeapons);
+                    }
+                    break;
+                }
           case PlayerTurnSteps.ShieldsUp:
               {
 

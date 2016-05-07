@@ -85,15 +85,18 @@ public class UIManager : MonoBehaviour
     {
         GameplayScript.Get().GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.SetPowerLevels);
     }
+    public PlayerShipScript.PlayerTurnSteps actionChoice { get; set; }
 
     public void ShootButtonDown()
     {
-        GameplayScript.Get().GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.FireWeapons);
+        actionChoice = PlayerShipScript.PlayerTurnSteps.AimWeapons; //set choice here, player script gets later
+        GameplayScript.Get().GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.ChooseAction); //we are ENDING the choose phase via this
     }
 
     public void MoveButtonDown()
     {
-        GameplayScript.Get().GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.EngageEngines);
+        actionChoice = PlayerShipScript.PlayerTurnSteps.AimEngines;
+        GameplayScript.Get().GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.ChooseAction);
     } 
 
     public void UpdateSystemPower( int weaponPower, int shieldPower, int enginePower )
