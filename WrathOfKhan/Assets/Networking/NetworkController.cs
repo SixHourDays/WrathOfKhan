@@ -19,10 +19,6 @@ public class NetworkController : MonoBehaviour
         public int playerID;
     }
     
-    // Host only information *************************************
-    bool m_isHost = false;
-
-    // non-host only information *********************************
     Socket m_next = null;
     Socket m_prev = null;
 
@@ -39,7 +35,6 @@ public class NetworkController : MonoBehaviour
     static byte[] s_recv_buffer = new byte[m_recv_buffer_size];
 
     List<NetworkEventHandler> m_eventHandlers = new List<NetworkEventHandler>();
-    
 
     // Use this for initialization
     void Start ()
@@ -51,6 +46,11 @@ public class NetworkController : MonoBehaviour
 	void Update ()
     {
         HandleEvents();
+
+        if (Input.GetKeyDown(KeyCode.G))
+        {
+            SendTransmission(new FireBullet());
+        }
 	}
 
     private void HandleEvents()
@@ -74,13 +74,24 @@ public class NetworkController : MonoBehaviour
             // otherwise read it, send it to next, and dispatch.
 
             TransmissionInfo info = RetrieveTransmission();
-            DispatchEvent(info);
+
+            if (info.transmission_from_id != m_localPlayerInfo.playerID)
+            {
+                bool shouldPropegate = DispatchEvent(info);
+
+                if (shouldPropegate)
+                {
+                    SendTransmissionInfo(info);
+                }
+            }
         }
     }
 
 
-    private void DispatchEvent(TransmissionInfo info)
+    private bool DispatchEvent(TransmissionInfo info)
     {
+        bool shouldPropegate = true;
+
         if (info.transmission_name == typeof(FireBullet).Name)
         {
             FireBullet temp = JsonUtility.FromJson<FireBullet>(info.transmission_payload);
@@ -98,11 +109,15 @@ public class NetworkController : MonoBehaviour
             {
                 m_eventHandlers[i].OnNetworkEvent(temp);
             }
+
+            shouldPropegate = false;
         }
         else
         {
             Debug.LogError("Unhandled transmission type");
         }
+
+        return shouldPropegate;
     }
 
     public void PauseEventHandling()
@@ -131,6 +146,9 @@ public class NetworkController : MonoBehaviour
     public bool ConnectToHost(IPAddress address)
     {
         // we are not the host. Connect to the address and await instructions from the host (turn order etc...)
+
+        // 1 because we are not the host
+        m_localPlayerInfo.playerID = 1;
 
         if (m_next != null)
         {
@@ -171,10 +189,9 @@ public class NetworkController : MonoBehaviour
     // returns if it was successful in starting to listen. Can deal with the UI in a fancy way if we want (instead of crashing the app on random exceptions)
     public bool ListenForConnections(int numberOfConnections)
     {
-        // this means we're the host. Make a Server socket and accept a bunch of connections.
-
         List<Socket> sockets_connected = new List<Socket>();
 
+        // this means we're the host. Make a Server socket and accept a bunch of connections.
         Socket server_socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         try
         {
@@ -185,7 +202,7 @@ public class NetworkController : MonoBehaviour
             {
                 sockets_connected.Add(server_socket.Accept());
             }
-
+            
             server_socket.Close();
             server_socket = null;
 
@@ -197,7 +214,7 @@ public class NetworkController : MonoBehaviour
             Debug.Log("Socket Exception. Message = (" + ex.Message + ")");
             Debug.Log("Stack trace = (" + ex.StackTrace + ")");
 
-            server_socket.Shutdown(SocketShutdown.Both);
+            //server_socket.Shutdown(SocketShutdown.Both);
             server_socket.Close();
             //server_socket.Dispose();
 
@@ -249,25 +266,42 @@ public class NetworkController : MonoBehaviour
                 player.playerID = player_index;
                 m_players.Add(player);
 
-                SendTransmission(trans);
+                SendTransmission(trans, sockets_connected[i]);
 
                 player_index++;
             }
+
+            m_prev = sockets_connected[0];
+            m_next = sockets_connected[sockets_connected.Count - 1];
         }
 
         return true;
     }
 
-    public bool SendTransmission(object transmissionObject)
+    public bool SendTransmission(object transmissionObject, Socket socket = null)
     {
         TransmissionInfo infoObject = new TransmissionInfo();
 
         infoObject.transmission_name = transmissionObject.GetType().Name;
+        infoObject.transmission_from_id = m_localPlayerInfo.playerID;
         infoObject.transmission_payload = JsonUtility.ToJson(transmissionObject);
 
-        string final_payload = JsonUtility.ToJson(infoObject);
+        return SendTransmissionInfo(infoObject, socket);
+    }
 
-        return SendFullMessage(m_next, System.Text.Encoding.ASCII.GetBytes(final_payload));
+    private bool SendTransmissionInfo(TransmissionInfo info, Socket socket = null)
+    {
+        string final_payload = JsonUtility.ToJson(info);
+
+        Socket sock = socket;
+
+        if (sock == null)
+        {
+            Debug.Log("Sending firebullet to m_next");
+            sock = m_next;
+        }
+
+        return SendFullMessage(sock, System.Text.Encoding.ASCII.GetBytes(final_payload));
     }
 
     
@@ -298,9 +332,13 @@ public class NetworkController : MonoBehaviour
 
                 if (m_next != null)
                 {
-                    m_next.Shutdown(SocketShutdown.Both);
-                    m_next.Close();
-                    m_next = null;
+                    // if we're the last guy... don't close next as they're the same.
+                    if (connectTransmission.numPlayers != m_localPlayerInfo.playerID + 1)
+                    {
+                        m_next.Shutdown(SocketShutdown.Both);
+                        m_next.Close();
+                        m_next = null;
+                    }
                 }
 
                 IPAddress address = IPAddress.Parse(connectTransmission.nextIPAddress);
@@ -311,9 +349,9 @@ public class NetworkController : MonoBehaviour
                 Debug.Log("Connected to next IP of " + connectTransmission.nextIPAddress);
             }
 
-            // we're the last one to connect, therefor our prev is fine.
+            // if we're the last one to connect, our prev is fine.
             // just need to set next and don't bother listening
-            if (connectTransmission.numPlayers != m_localPlayerInfo.playerID - 1)
+            if (connectTransmission.numPlayers != m_localPlayerInfo.playerID + 1)
             {
                 // listen for prev.
                 Socket server_socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -385,6 +423,7 @@ public class NetworkController : MonoBehaviour
 
         if (socket == null)
         {
+            Debug.Log("Socket is null");
             return false;
         }
 
