@@ -81,6 +81,8 @@ public class UIManager : MonoBehaviour
     int[] powerLevel = new int[3]; //weapon, shield, engine, special
     public int GetPowerLevel(int i) { return powerLevel[i]; }
 
+    public UISection GetPhase(int i) { return i == 0 ? m_phase1 : m_phase2; }
+
     public void CommitPower()
     {
         GameplayScript.Get().GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.SetPowerLevels);

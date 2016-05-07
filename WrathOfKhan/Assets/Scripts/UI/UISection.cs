@@ -24,6 +24,18 @@ public class UISection : MonoBehaviour
 	
 	}
 
+    public void SetButtonActive(string name, bool active)
+    {
+        foreach (RectTransform rect in m_controls)
+        {
+            if (rect.gameObject.name == name)
+            {
+                rect.gameObject.GetComponent<Button>().interactable = active;
+                break;
+            }
+        }
+    }
+
     public void SetActive(bool active)
     {
         if( active )

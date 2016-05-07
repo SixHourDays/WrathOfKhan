@@ -23,6 +23,12 @@ public class GameplayScript : MonoBehaviour {
         localPlayerIndex = 0; //DAN!!!
 	}
 
+    public void EndLocalPlayerTurn()
+    {
+        Debug.Log("GameplayScript end local turn");
+        //DAN!
+    }
+
     // Update is called once per frame
     int dumbCount = 0;
 	void Update () {

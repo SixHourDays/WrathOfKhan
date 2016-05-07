@@ -49,6 +49,7 @@ public class PlayerShipScript : MonoBehaviour {
                     m_shipState.torpedosRemaining = UIManager.Get().GetPowerLevel(0);
                     m_shipState.shieldsRemaining = UIManager.Get().GetPowerLevel(1);
                     m_shipState.enginesRemaining = UIManager.Get().GetPowerLevel(2);
+                    //...
                     Debug.Log( "Commit end of SetPowerLevels" + m_shipState.torpedosRemaining + " " + m_shipState.shieldsRemaining + " " + m_shipState.enginesRemaining );
                     //TODO toggle UI with avaiable buttons for powers picked
 
@@ -83,6 +84,7 @@ public class PlayerShipScript : MonoBehaviour {
                     firedTorpedo = (GameObject)Instantiate(torpedoGO, aimerPos, new Quaternion());
                     firedTorpedo.transform.parent = transform.parent; //make it sibling to the ship
                     firedTorpedo.GetComponent<TorpedoScript>().velocity = aimerVelo;
+
                     /*GameObject loaderScene = GameObject.Find("LoaderScene");
                     if (loaderScene)
                     {
@@ -90,14 +92,8 @@ public class PlayerShipScript : MonoBehaviour {
                         if (controller)
                         {
                             FireBullet bullet = new FireBullet();
-
-                            bullet.x = aimerStart.x;
-                            bullet.y = aimerStart.y;
-                            bullet.z = aimerStart.z;
-
-                            bullet.vx = velocity.x;
-                            bullet.vy = velocity.y;
-                            bullet.vz = velocity.z;
+                            bullet.SetPosition(aimerPos);
+                            bullet.SetVelocity(aimerVelo);
 
                             controller.SendTransmission(bullet);
                         }
@@ -107,17 +103,11 @@ public class PlayerShipScript : MonoBehaviour {
             case PlayerTurnSteps.FireWeapons:
                 {
                     Debug.Log("end flight");
-                    //return to aiming if more torps
-                    if ( m_shipState.torpedosRemaining > 0 )
-                    {
-                        turnStep = PlayerTurnSteps.AimWeapons;
-                    }
-                    else
-                    {
-                        //return to power choice if any left
-                        //elsewise end turn
-                        turnStep = ChooseOrDone();
-                    }
+                    
+                    //return to power choice if any left
+                    //elsewise end turn
+                    turnStep = ChooseOrDone();
+
                     break;
                 }
             case PlayerTurnSteps.ShieldsUp:
@@ -167,13 +157,21 @@ public class PlayerShipScript : MonoBehaviour {
         if (m_shipState.torpedosRemaining > 0 || m_shipState.shieldsRemaining > 0 || m_shipState.enginesRemaining > 0)
         {
             Debug.Log("Start ChooseAction");
-            UIManager.Get().SetPhaseTwoActive();
+            UIManager.Get().SetPhaseTwoActive(); //sets all buttons on
+
+            UIManager.Get().GetPhase(1).SetButtonActive("Shoot", m_shipState.torpedosRemaining > 0);
+            UIManager.Get().GetPhase(1).SetButtonActive("Move", m_shipState.enginesRemaining > 0);
+            //... shields
+            //... special
+
+
             return PlayerTurnSteps.ChooseAction;
         }
         else
         {
             Debug.Log("End turn");
             UIManager.Get().SetPhasesInactive();
+            GameplayScript.Get().EndLocalPlayerTurn();
             return PlayerTurnSteps.WaitForTurn;
         }
     }
