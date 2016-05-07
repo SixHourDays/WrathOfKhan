@@ -80,7 +80,8 @@ public class UIManager : MonoBehaviour
     public void CommitPower()
     {
         SetPhaseTwoActive();
-        
+        PlayerShipScript.UIState powerState = new PlayerShipScript.UIState(powerLevel[0], powerLevel[1], powerLevel[2], 0, 0); //TODO STEVE add the appropriate 4th here, based on race (fed/emp)
+        GameplayScript.Get().GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.SetPowerLevels, powerState);
     }
 
     public void UpdateSystemPower( int weaponPower, int shieldPower, int enginePower )
@@ -88,5 +89,6 @@ public class UIManager : MonoBehaviour
         powerLevel[0] = weaponPower;
         powerLevel[1] = shieldPower;
         powerLevel[2] = enginePower;
+        //todo - 4th tier
     }
 }
