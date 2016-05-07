@@ -3,9 +3,12 @@ using System.Collections;
 
 public class TorpedoScript : MonoBehaviour {
 
-	// Use this for initialization
-	void Start () {
-	
+    public float torpedoLifetime;
+    float torpedoStartTime;
+
+    // Use this for initialization
+    void Start () {
+        torpedoStartTime = Time.time;
 	}
 
     public static Vector3 GetNBodyForceAtPos(Vector3 pos)
@@ -39,6 +42,10 @@ public class TorpedoScript : MonoBehaviour {
     // Update is called once per frame
     void Update () {
 	
+        if ( Time.time - torpedoStartTime > torpedoLifetime )
+        {
+            GameObject.Destroy(gameObject);
+        }
 	}
     void OnCollisionEnter2D(Collision2D col)
     {
