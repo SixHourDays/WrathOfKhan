@@ -11,6 +11,8 @@ public class UIManager : MonoBehaviour
     private UISection m_phase1;
     private UISection m_phase2;
 
+    private bool m_init = false;
+
     public void Start()
     {
         Transform hudObj = this.transform.FindChild("HUD");
@@ -18,12 +20,15 @@ public class UIManager : MonoBehaviour
         Debug.Assert(m_phase1 != null);
         m_phase2 = hudObj.FindChild("Phase_2").GetComponent<UISection>();
         Debug.Assert(m_phase2 != null);
-
-        SetPhaseOneActive();
     }
 
     public void Update()
     {
+        if(!m_init)
+        {
+            SetPhaseOneActive();
+            m_init = true;
+        }
     }
 
     public static UIManager Get()
