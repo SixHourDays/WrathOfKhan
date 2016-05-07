@@ -1,7 +1,9 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class PlayerShipScript : MonoBehaviour {
+public class PlayerShipScript : MonoBehaviour
+{
+    private NetworkController m_networkController = null;
 
     //there are n PlayerShipScripts in the scene to represent each player
     static int shipCount; //easy way to assign indices fixed on load order
@@ -83,7 +85,7 @@ public class PlayerShipScript : MonoBehaviour {
                     firedTorpedo = (GameObject)Instantiate(torpedoGO, aimerPos, new Quaternion());
                     firedTorpedo.transform.parent = transform.parent; //make it sibling to the ship
                     firedTorpedo.GetComponent<TorpedoScript>().velocity = aimerVelo;
-                    /*GameObject loaderScene = GameObject.Find("LoaderScene");
+                    GameObject loaderScene = GameObject.Find("LoaderScene");
                     if (loaderScene)
                     {
                         NetworkController controller = loaderScene.GetComponent<NetworkController>();
@@ -91,17 +93,12 @@ public class PlayerShipScript : MonoBehaviour {
                         {
                             FireBullet bullet = new FireBullet();
 
-                            bullet.x = aimerStart.x;
-                            bullet.y = aimerStart.y;
-                            bullet.z = aimerStart.z;
-
-                            bullet.vx = velocity.x;
-                            bullet.vy = velocity.y;
-                            bullet.vz = velocity.z;
+                            bullet.SetPosition(aimerPos);
+                            bullet.SetVelocity(aimerVelo);
 
                             controller.SendTransmission(bullet);
                         }
-                    }*/
+                    }
                     break;
                 }
             case PlayerTurnSteps.FireWeapons:
@@ -180,7 +177,14 @@ public class PlayerShipScript : MonoBehaviour {
 
 
     // Use this for initialization
-    void Start () {
+    void Start ()
+    {
+        GameObject loaderScene = GameObject.Find("LoaderScene");
+        if (loaderScene)
+        {
+            m_networkController = loaderScene.GetComponent<NetworkController>();
+        }
+
 
         shipIndex = shipCount++;
 

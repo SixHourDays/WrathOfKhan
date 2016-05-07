@@ -4,6 +4,7 @@ public class NetworkEventHandler : MonoBehaviour
 {
     public BulletNetworkEvent bulletNetworkEvent = new BulletNetworkEvent();
     public ConnectTransmissionEvent connectTransmissionEvent = new ConnectTransmissionEvent();
+    public EndTurnTransmissionEvent endTurnNetworkEvent = new EndTurnTransmissionEvent();
 
     public void Start()
     {
@@ -60,6 +61,14 @@ public class NetworkEventHandler : MonoBehaviour
         if (connectTransmissionEvent != null)
         {
             connectTransmissionEvent.Invoke(transmission);
+        }
+    }
+
+    public void OnNetworkEvent(EndTurnTransmission transmission)
+    {
+        if (endTurnNetworkEvent != null)
+        {
+            endTurnNetworkEvent.Invoke(transmission);
         }
     }
 }
