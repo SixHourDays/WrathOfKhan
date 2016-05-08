@@ -103,6 +103,11 @@ public class NetworkSelector : MonoBehaviour
         }
     }
 
+    public void ToggleMusic(bool enabled)
+    {
+
+    }
+
     void Update()
     {
         UpdateSelectedShip();
