@@ -260,7 +260,6 @@ public class PlayerShipScript : MonoBehaviour
             GameObject dotChild = Instantiate(aimerDotGO);
             dotChild.transform.parent = transform;
             dotChild.SetActive(false);
-            dotChild.GetComponent<SpriteRenderer>().color = new Color(1.0f, 1.0f, 1.0f, (float)(aimerDotCount - i) / aimerDotCount);
         }
 
         m_shipState = new ShipState(false, 0, 0.0f, 0.0f, 0, false);
@@ -349,7 +348,12 @@ public class PlayerShipScript : MonoBehaviour
                     if (!transform.GetChild(0).gameObject.activeSelf)
                     {
                         Debug.Log("Aimweapons start");
-                        for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(true); }
+                        for (int i = 0; i < transform.childCount; ++i)
+                        {
+                            GameObject go = transform.GetChild(i).gameObject;
+                            go.SetActive(true);
+                            go.GetComponent<SpriteRenderer>().color = new Color(1, 0, 0, (float)(aimerDotCount - i) / aimerDotCount);
+                        }
                     }
 
                     //convert mouse to world screen pos, and get direction of mouse vs ship
@@ -399,7 +403,12 @@ public class PlayerShipScript : MonoBehaviour
                     if (!transform.GetChild(0).gameObject.activeSelf)
                     {
                         Debug.Log("AimEngines start");
-                        for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(true); }
+                        for (int i = 0; i < transform.childCount; ++i)
+                        {
+                            GameObject go = transform.GetChild(i).gameObject;
+                            go.SetActive(true);
+                            go.GetComponent<SpriteRenderer>().color = new Color(0, 1, 0, (float)(aimerDotCount - i) / aimerDotCount);
+                        }
                     }
 
                     //convert mouse to world screen pos, and get direction of mouse vs ship
