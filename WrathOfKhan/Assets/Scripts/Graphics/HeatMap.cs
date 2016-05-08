@@ -31,6 +31,8 @@ public class HeatMap : MonoBehaviour
 
     private List<HeatInjector> m_listeners;
 
+    private static HeatMap m_instance = null;
+
 	// Use this for initialization
 	void Start () 
     {
@@ -45,9 +47,12 @@ public class HeatMap : MonoBehaviour
 
     public static HeatMap Get()
     {
-        HeatMap heatMan = FindObjectOfType<HeatMap>();
-        Debug.Assert(heatMan != null);
-        return heatMan;
+        if (!m_instance)
+        {
+            m_instance = FindObjectOfType<HeatMap>();
+        }
+        Debug.Assert(m_instance != null);
+        return m_instance;
     }
 
     public void Initialize( Vector2 levelSize )
