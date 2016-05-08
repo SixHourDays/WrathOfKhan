@@ -543,8 +543,11 @@ public class PlayerShipScript : MonoBehaviour
         if (transmission.player_id == playerID)
         {
             // this is the ship that is supposed to be damaged. Damage us.
-           
-            DistributeDamage(transmission.damage_to_apply);
+
+            //DistributeDamage(100.0f); // tons of damage    
+            //CommitTurnStep(PlayerTurnSteps.EngageEngines);
+
+            //DistributeDamage(transmission.damage_to_apply);
         }
     }
 
@@ -575,19 +578,31 @@ public class PlayerShipScript : MonoBehaviour
         else if (otherShip)
         {
             // damage the other ship A LOT, while damaging us a little. idk.
+            
 
-            DistributeDamage(rammingDamageTaken);
+            //DistributeDamage(rammingDamageTaken);
 
-            DamageShipTransmission damageTransmission = new DamageShipTransmission();
-            damageTransmission.player_id = otherShip.playerID;
-            damageTransmission.damage_to_apply = rammingDamageGiven;
-
-            m_networkController.SendTransmission(damageTransmission);
+            
 
             // now stop us from moving
 
+            DistributeDamage(100.0f); // tons of damage
+
+            //DamageShipTransmission damageTransmission = new DamageShipTransmission();
+            //damageTransmission.player_id = playerID;
+            //damageTransmission.damage_to_apply = 100.0f;
+
+            //m_networkController.SendTransmission(damageTransmission);
+            
+            //damageTransmission.player_id = otherShip.playerID;
+            //damageTransmission.damage_to_apply = 100.0f;
+
+            //m_networkController.SendTransmission(damageTransmission);
+
+            CommitTurnStep(PlayerTurnSteps.EngageEngines);
+
             // with this?
-            //  CommitTurnStep(PlayerTurnSteps.EngageEngines);
+            //  
 
             // also bounce us back a bit from the ship we just hit.
 
@@ -596,6 +611,16 @@ public class PlayerShipScript : MonoBehaviour
         else
         {
             // ouch... planets hurt.
+
+            DistributeDamage(100.0f); // tons of damage
+
+            //DamageShipTransmission damageTransmission = new DamageShipTransmission();   // send a message to everyone that I damaged myself to make sure I died there
+            //damageTransmission.player_id = playerID;
+            //damageTransmission.damage_to_apply = 100.0f;
+
+            //m_networkController.SendTransmission(damageTransmission);
+
+            CommitTurnStep(PlayerTurnSteps.EngageEngines);
 
             Debug.Log("Hit a planet.");
         }
