@@ -9,6 +9,8 @@ public class UIPowerControl : MonoBehaviour
 
     private int m_availablePower = 5;
 
+    private static UIPowerControl m_instance = null;
+
 	// Use this for initialization
 	void Start () 
     {
@@ -28,9 +30,12 @@ public class UIPowerControl : MonoBehaviour
 
     public static UIPowerControl Get()
     {
-        UIPowerControl uiPower = FindObjectOfType<UIPowerControl>();
-        Debug.Assert(uiPower != null);
-        return uiPower;
+        if (!m_instance)
+        {
+            m_instance = FindObjectOfType<UIPowerControl>();
+        }
+        Debug.Assert(m_instance != null);
+        return m_instance;
     }
 
     public int GetNumberOfDamagableSystems()
