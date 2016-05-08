@@ -4,6 +4,7 @@ using System.Collections.Generic;
 public class GameplayScript : MonoBehaviour
 {
     private NetworkController m_networkController = null;
+    private LoaderScript m_loader = null;
 
     private bool m_firstFrameInit = false;
     private bool m_showingDead = false;
@@ -55,6 +56,7 @@ public class GameplayScript : MonoBehaviour
         if (loaderScene != null)
         {
             m_networkController = loaderScene.GetComponent<NetworkController>();
+            m_loader = loaderScene.GetComponent<LoaderScript>();
         }
         else
         {
@@ -124,7 +126,7 @@ public class GameplayScript : MonoBehaviour
         {
             if (dedPlayers >= m_networkController.GetNumberPlayers() - 1)
             {
-                
+                m_loader.SwitchToSceneNamed("Results");
             }
         }
     }

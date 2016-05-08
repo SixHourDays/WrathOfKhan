@@ -524,48 +524,48 @@ public class PlayerShipScript : MonoBehaviour
 
     void OnCollisionEnter2D(Collision2D col)
     {
+        GameObject collidedObject = col.gameObject;
+
+        TorpedoScript torpedo = collidedObject.GetComponent<TorpedoScript>();
+        PlayerShipScript otherShip = collidedObject.GetComponent<PlayerShipScript>();
+        // otherwise it's a ... planet or debris.
+
+        if (torpedo)
+        {
+            Debug.Log("Hit a torpedo");
+
+            DistributeDamage(torpedo.damagePower);
+        }
+        else if (otherShip)
+        {
+            // damage the other ship A LOT, while damaging us a little. idk.
+
+            DistributeDamage(rammingDamageTaken);
+
+            DamageShipTransmission damageTransmission = new DamageShipTransmission();
+            damageTransmission.player_id = otherShip.playerID;
+            damageTransmission.damage_to_apply = rammingDamageGiven;
+
+            m_networkController.SendTransmission(damageTransmission);
+
+            // now stop us from moving
+
+            // with this?
+            //  CommitTurnStep(PlayerTurnSteps.EngageEngines);
+
+            // also bounce us back a bit from the ship we just hit.
+
+            Debug.Log("Hit a ship");
+        }
+        else
+        {
+            // ouch... planets hurt.
+
+            Debug.Log("Hit a planet.");
+        }
+
         if (isLocalPlayer())
         {
-            GameObject collidedObject = col.gameObject;
-
-            TorpedoScript torpedo = collidedObject.GetComponent<TorpedoScript>();
-            PlayerShipScript otherShip = collidedObject.GetComponent<PlayerShipScript>();
-            // otherwise it's a ... planet or debris.
-
-            if (torpedo)
-            {
-                Debug.Log("Hit a torpedo");
-
-                DistributeDamage(torpedo.damagePower);
-            }
-            else if (otherShip)
-            {
-                // damage the other ship A LOT, while damaging us a little. idk.
-
-                DistributeDamage(rammingDamageTaken);
-
-                DamageShipTransmission damageTransmission = new DamageShipTransmission();
-                damageTransmission.player_id = otherShip.playerID;
-                damageTransmission.damage_to_apply = rammingDamageGiven;
-
-                m_networkController.SendTransmission(damageTransmission);
-
-                // now stop us from moving
-
-                // with this?
-                //  CommitTurnStep(PlayerTurnSteps.EngageEngines);
-
-                // also bounce us back a bit from the ship we just hit.
-
-                Debug.Log("Hit a ship");
-            }
-            else
-            {
-                // ouch... planets hurt.
-
-                Debug.Log("Hit a planet.");
-            }
-
             if (m_shipState.systemHealth != null)
             {
                 for (int i = 0; i < m_shipState.systemHealth.Length; ++i)
