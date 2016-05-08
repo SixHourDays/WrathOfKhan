@@ -36,8 +36,8 @@ public class PlayerShipScript : MonoBehaviour
     public void SetShieldsRemaining(float remaining)
     {
         m_shipState.shieldsRemaining = remaining;
-        shieldUpSound.Play();
         shieldSprite.GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, m_shipState.shieldsRemaining);
+
     }
     //return events forwarding the turn
     //any 'do once' code lives here
@@ -61,6 +61,8 @@ public class PlayerShipScript : MonoBehaviour
                     m_shipState.torpedosRemaining = UIManager.Get().GetPowerLevel(0); //a literal count
                     SetShieldsRemaining(UIManager.Get().GetPowerLevel(1) / 3.0f); //normalized
                     m_shipState.enginesRemaining = UIManager.Get().GetPowerLevel(2) / 3.0f; //normalized
+
+                    if (UIManager.Get().GetPowerLevel(1) > 0) { shieldUpSound.Play(); } //shields powered!
 
                     GameObject loaderScene = GameObject.Find("LoaderScene");
 
