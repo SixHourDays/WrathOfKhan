@@ -7,6 +7,10 @@ public class PlayerShipScript : MonoBehaviour
 
     public int playerID; // the playerID that this ship represents. Needs to be set by the GameplayScript when this class is created.
 
+    public int m_weaponDamage;
+    public int m_shieldDamage;
+    public int m_engineDamage;
+
     //this returns the one that is bound to the human playing on this computer
     public bool isLocalPlayer() { return GameplayScript.Get().localPlayerIndex == playerID; }
     public bool isRemotePlayer() { return GameplayScript.Get().localPlayerIndex != playerID; }
@@ -39,7 +43,7 @@ public class PlayerShipScript : MonoBehaviour
 
                     turnStep = PlayerTurnSteps.SetPowerLevels;
                     Debug.Log("Start SetPowerLevels");
-
+                    
                     UIManager.Get().SetPhaseOneActive();
                     break;
                 }
@@ -445,8 +449,76 @@ public class PlayerShipScript : MonoBehaviour
 
     void OnCollisionEnter2D(Collision2D col)
     {
-        //note we cant just start deleting players mid match - indexes rely on same count of them thruout
-        Debug.Log("ship destroyed");
-        gameObject.SetActive(false);
+        if (isLocalPlayer())
+        {
+            Debug.Log("ship damaged");
+
+            // just pick one thing and damage it for now.
+
+            const int max_damage = 3; // find a good place for this.
+
+            // essentially get a random number in the range of all possible damagable items.
+
+            int rand_index = Random.Range(0, (max_damage * 3) - m_weaponDamage - m_shieldDamage - m_engineDamage);
+
+            // find the index corresponding to the item that we should damage
+            // ie: [weapon] [weapon] [weapon] [shield] [shield] [shield] [engine] [engine] [engine]
+            //         0        1        2        3        4        5        6        7        8
+            //
+            // and the case that we have 2 damage to weapons:
+            // 
+            // ie: [weapon] [shield] [shield] [shield] [engine] [engine] [engine]
+            //         0        1        2        3        4        5        6    
+            //
+            // and in the case of 1 damage to weapons, and 2 damage to shields.
+            // 
+            // ie: [weapon] [weapon] [shield] [engine] [engine] [engine]
+            //         0        1        2        3        4        5          
+            /*
+            if (rand_index >= max_damage - m_weaponDamage)
+            {
+                rand_index -= max_damage - m_weaponDamage;
+            }
+            else
+            {
+                m_weaponDamage++;
+                rand_index = -1;
+            }
+
+            if (rand_index >= 0)
+            {
+                if (rand_index >=  max_damage - m_shieldDamage)
+                {
+                    rand_index -= max_damage - m_shieldDamage;
+                }
+                else
+                {
+                    m_shieldDamage++;
+                    rand_index = -1;
+                }
+            }
+
+            if (rand_index >= 0)
+            {
+                if (rand_index >= max_damage - m_shieldDamage)
+                {
+                    rand_index -= max_damage - m_engineDamage;
+                }
+                else
+                {
+                    m_engineDamage++;
+                    rand_index = -1;
+                }
+            }
+            
+            if (max_damage * 3 >= m_weaponDamage + m_shieldDamage + m_engineDamage + 1)
+            {
+                m_weaponDamage = m_shieldDamage = m_engineDamage = max_damage;
+                gameObject.SetActive(false);
+            }
+
+            UIPowerControl.Get().SetDamageValues(m_weaponDamage, m_shieldDamage, m_engineDamage);
+            */
+        }
     }
 }

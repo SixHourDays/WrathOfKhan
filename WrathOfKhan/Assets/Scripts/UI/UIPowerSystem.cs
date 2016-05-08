@@ -33,6 +33,11 @@ public class UIPowerSystem : MonoBehaviour
         }
 	}
 
+    public void SetDamage( int damage )
+    {
+        m_destroyedPower = damage;
+    }
+
     public void SetPower( int power )
     {
         Debug.Assert(power >= 0 && power <= m_imgNodes.Length);

@@ -16,7 +16,7 @@ public class UIPowerControl : MonoBehaviour
         m_systems[0] = this.transform.FindChild("Weapons").GetComponent<UIPowerSystem>();
         m_systems[1] = this.transform.FindChild("Shields").GetComponent<UIPowerSystem>();
         m_systems[2] = this.transform.FindChild("Engines").GetComponent<UIPowerSystem>();
-        m_systems[0].m_destroyedPower = 1;
+        
         UpdateAvailablePower();
 	}
 	
@@ -49,6 +49,13 @@ public class UIPowerControl : MonoBehaviour
         UpdateAvailablePower();
 
         UIManager.Get().UpdateSystemPower(m_systems[0].m_power, m_systems[1].m_power, m_systems[2].m_power);
+    }
+
+    public void SetDamageValues(int weaponDamage, int shieldDamage, int engineDamage)
+    {
+        m_systems[0].SetDamage(weaponDamage);
+        m_systems[1].SetDamage(shieldDamage);
+        m_systems[2].SetDamage(engineDamage);
     }
 
     public int availablePower
