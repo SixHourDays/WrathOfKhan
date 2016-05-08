@@ -49,10 +49,10 @@ public class TorpedoScript : MonoBehaviour {
 
         if (
             Time.time - torpedoStartTime > torpedoLifetime
-            || transform.position.x < -2000 
-            || transform.position.x > 2000 
-            || transform.position.y < -2000 
-            || transform.position.y > 2000
+            || transform.position.x < -2000.0 
+            || transform.position.x > 2000.0 
+            || transform.position.y < -2000.0 
+            || transform.position.y > 2000.0
         )
         {
             GameObject.Destroy(gameObject);

@@ -227,7 +227,7 @@ public class PlayerShipScript : MonoBehaviour
 
     PlayerTurnSteps ChooseOrDone()
     {
-        if (m_shipState.torpedosRemaining > 0 || m_shipState.enginesRemaining > 0)
+        if ( !IsDead() && (m_shipState.torpedosRemaining > 0 || m_shipState.enginesRemaining > 0))
         {
             Debug.Log("Start ChooseAction");
             UIManager.Get().SetPhaseTwoActive(); //sets all buttons on
