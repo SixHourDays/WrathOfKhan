@@ -36,6 +36,7 @@ public class UIPowerSystem : MonoBehaviour
     public void SetDamage( int damage )
     {
         m_destroyedPower = damage;
+        UpdatePowerDisplay();
     }
 
     public void SetPower( int power )

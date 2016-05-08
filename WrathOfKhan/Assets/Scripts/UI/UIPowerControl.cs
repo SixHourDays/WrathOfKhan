@@ -63,6 +63,7 @@ public class UIPowerControl : MonoBehaviour
 
     public void SetDamageValues(int index, int damage)
     {
+        m_systems[index].ClearPower();
         m_systems[index].SetDamage(damage);
     }
 
