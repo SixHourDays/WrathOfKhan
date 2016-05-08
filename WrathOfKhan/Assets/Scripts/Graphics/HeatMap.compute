@@ -29,6 +29,9 @@ uint injectStartX;
 uint injectStartY;
 uint injectEndX;
 uint injectEndY;
+float injectCenterRadius;
+
+
 float injectStrength;
 
 SamplerState _LinearClamp;
@@ -60,7 +63,7 @@ void InjectHeat(uint3 id : SV_DispatchThreadID)
 	float d = distance(uv, center);
 
 	float size = 0.5 * min( injectEndX-injectStartX, injectEndY-injectStartY );
-	float t = smoothstep( size, 0.0, d );
+	float t = smoothstep( size, injectCenterRadius, d );
 	float heatStrength = t*injectStrength;
 
 	HeatTexDst[uv] += heatStrength;
@@ -112,7 +115,7 @@ void RenderHeatMap (uint3 id : SV_DispatchThreadID)
 	f1 = 2.0 * (f0-0.5);
 
 	float4 heatValue = HeatGradient.SampleLevel(_LinearClamp, float2(gradientValue, 0.5), 0);
-	heatValue += f1*0.1;
+	heatValue += f1*0.01;
 
 	Result[id.xy] = heatValue;
 	//Result[id.xy] = float4(f0, f0, f0, 1.0);
