@@ -1,16 +1,13 @@
 ﻿using UnityEngine;
 using System.Collections;
-using System.Collections.Generic;
 
 public class HeatMap : MonoBehaviour 
 {
-    public float WorldToTextureScale = 0.5f;
+    public int m_heatGridWidth = 128;
+    public int m_heatGridHeight = 128;
 
-    private int m_heatGridWidth = 128;
-    private int m_heatGridHeight = 128;
-
-    private int m_texWidth = 2048;
-    private int m_texHeight = 2048;
+    public int m_texWidth = 2048;
+    public int m_texHeight = 2048;
 
     public float m_maxHeat = 40.0f;
     public float m_noiseScale = 10.0f;
@@ -19,53 +16,19 @@ public class HeatMap : MonoBehaviour
     public float m_heatLossSpeed = 0.1f;
 
     public ComputeShader m_computeHeatMap;
+    private float[] m_heatGrid;
+
     private RenderTexture m_heatMapTex;
+
     public Texture2D m_heatMapGradient;
+
     private RenderTexture[] m_heatGridTex;
 
     private bool m_flipTex = false;
 
-    private bool m_initialized = false;
-
-    private Vector2 m_worldSize;
-
-    private List<HeatInjector> m_listeners;
-
 	// Use this for initialization
 	void Start () 
     {
-        m_initialized = false;
-        m_listeners = new List<HeatInjector>();
-	}
-	
-	// Update is called once per frame
-	void Update () 
-    {
-	}
-
-    public static HeatMap Get()
-    {
-        HeatMap heatMan = FindObjectOfType<HeatMap>();
-        Debug.Assert(heatMan != null);
-        return heatMan;
-    }
-
-    public void Initialize( Vector2 levelSize )
-    {
-        if( m_initialized )
-        {
-            return;
-        }
-
-        m_worldSize = levelSize;
-        Vector2 textureSize = WorldToTextureScale * levelSize;
-
-        m_heatGridWidth = (int)textureSize.x;
-        m_heatGridHeight = (int)textureSize.y;
-
-        m_texWidth = (int)textureSize.x;
-        m_texHeight = (int)textureSize.y;
-
         m_heatGridTex = new RenderTexture[2];
         for (int i = 0; i < 2; ++i)
         {
@@ -78,13 +41,13 @@ public class HeatMap : MonoBehaviour
         m_heatMapTex.enableRandomWrite = true;
         m_heatMapTex.Create();
 
-        m_initialized = true;
-    }
-
-    public void RegisterListener( HeatInjector listener )
+        InsertRandomObjects(50);
+	}
+	
+	// Update is called once per frame
+	void Update () 
     {
-        m_listeners.Add(listener);
-    }
+	}
 
     void InsertRandomObjects(int numObj)
     {
@@ -94,21 +57,44 @@ public class HeatMap : MonoBehaviour
             Vector2 size = new Vector2(Random.Range(0.1f * m_heatGridWidth, 0.25f * m_heatGridWidth), Random.Range(0.1f * m_heatGridHeight, 0.25f * m_heatGridHeight));
             float heatVal = Random.Range(m_maxHeat * 0.25f, m_maxHeat * 0.8f);
 
-           // InjectHeatObject(pos, size, heatVal);
+            InjectHeatObject(pos, size, heatVal);
         }
     }
 
-    public void InjectHeatObject( Vector2 worldPos, Vector2 worldSize, float worldCenterRadius, float heatStrength )
+    public float GetHeat( int x, int y )
     {
-        if( !m_initialized )
+        int idx = GetHeatGridIdx(x, y);
+
+        if (idx > 0 && idx < m_heatGrid.Length)
         {
-            return;
+            return m_heatGrid[idx];
         }
 
-        Vector2 pos = WorldToTextureScale * (worldPos + (m_worldSize / 2.0f));
-        Vector2 size = WorldToTextureScale * worldSize;
-        float centerRadius = WorldToTextureScale * worldCenterRadius;
+        return 0;
+    }
 
+    public void AddHeat( int x, int y, float heatValue )
+    {
+        int idx = GetHeatGridIdx(x, y);
+
+        if (idx > 0 && idx < m_heatGrid.Length)
+        {
+            m_heatGrid[idx] += heatValue;
+        }
+    }
+
+    public void SubtractHeat( int x, int y, float heatValue )
+    {
+        int idx = GetHeatGridIdx(x, y);
+
+        if (idx > 0 && idx < m_heatGrid.Length)
+        {
+            m_heatGrid[idx] = Mathf.Max(0.0f, m_heatGrid[idx] - heatValue);
+        }
+    }
+
+    public void InjectHeatObject( Vector2 pos, Vector2 size, float heatStrength )
+    {
         Vector2 halfSize = size / 2.0f;
 
         int kernelId = m_computeHeatMap.FindKernel("InjectHeat");
@@ -121,19 +107,22 @@ public class HeatMap : MonoBehaviour
         m_computeHeatMap.SetInt("injectEndX", (int)(pos.x+halfSize.x));
         m_computeHeatMap.SetInt("injectEndY", (int)(pos.y+halfSize.y));
         m_computeHeatMap.SetFloat("injectStrength", heatStrength);
-        m_computeHeatMap.SetFloat("injectCenterRadius", centerRadius);
 
         m_computeHeatMap.Dispatch(kernelId, (int)size.x / 8, (int)size.y / 8, 1);
     }
 
     public void DiffusionStep()
     {
-        if (!m_initialized)
-        {
-            return;
-        }
+        //for( int iX = 0; iX < m_heatGridWidth; ++iX )
+        //{
+        //    for( int iY = 0; iY < m_heatGridHeight; ++iY )
+        //    {
+        //        DiffuseHeat(iX, iY);
+        //    }
+        //}
 
         int kernelId = m_computeHeatMap.FindKernel("DiffuseHeat");
+ //       m_computeHeatMap.SetBuffer(kernelId, "HeatGrid", m_heatBuffer);
         m_computeHeatMap.SetTexture(kernelId, "HeatTexSrc", CurrentSrcTexture);
         m_computeHeatMap.SetTexture(kernelId, "HeatTexDst", CurrentDstTexture);
         m_computeHeatMap.SetInt("GridWidth", m_heatGridWidth);
@@ -143,16 +132,6 @@ public class HeatMap : MonoBehaviour
         m_computeHeatMap.Dispatch(kernelId, m_heatGridWidth / 8, m_heatGridHeight / 8, 1);
 
         FlipTex();
-
-        BroadcastHeatUpdate();
-    }
-
-    private void BroadcastHeatUpdate()
-    {
-        for( int i = 0; i < m_listeners.Count; ++i )
-        {
-            m_listeners[i].HeatUpdate();
-        }
     }
 
     private int GetHeatGridIdx( int x, int y )
@@ -162,11 +141,6 @@ public class HeatMap : MonoBehaviour
 
     public void RenderHeatMap()
     {
-        if (!m_initialized)
-        {
-            return;
-        }
-
         float time = Mathf.Sin(m_noiseSpeed * Time.fixedTime) + 1.0f;
 
         int kernelId = m_computeHeatMap.FindKernel("RenderHeatMap");
@@ -185,11 +159,6 @@ public class HeatMap : MonoBehaviour
     public RenderTexture HeatMapTexture
     {
         get { return m_heatMapTex; }
-    }
-
-    public bool isInitialized
-    {
-        get { return m_initialized;  }
     }
 
     private RenderTexture CurrentSrcTexture
