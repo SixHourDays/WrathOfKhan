@@ -105,7 +105,7 @@ public class NetworkSelector : MonoBehaviour
 
     public void ToggleMusic(bool enabled)
     {
-
+        m_loader.ToggleMusic(enabled);
     }
 
     void Update()
