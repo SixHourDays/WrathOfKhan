@@ -89,8 +89,6 @@ public class ScanManager : MonoBehaviour
 
         m_scanTexture.SetPixels(colors);
         m_scanTexture.Apply();
-
-        Debug.Log("NUM RAY HITS: " + numHits);
     }
 
     public Texture2D ScanTexture

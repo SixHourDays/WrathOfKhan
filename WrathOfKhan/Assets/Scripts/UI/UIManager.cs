@@ -171,8 +171,7 @@ public class UIManager : MonoBehaviour
             PlayerShipScript player = GameplayScript.Get().GetLocalPlayer();
 
             Vector2 pos = new Vector2(player.transform.position.x, player.transform.position.y);
-            float startRadius = player.GetComponent<CircleCollider2D>().radius + 1.0f;
-
+            float startRadius = (player.GetComponent<CircleCollider2D>().radius * player.transform.localScale.x) + 0.2f;
             ScanManager.Get().RunScan(pos, startRadius);
         }
    

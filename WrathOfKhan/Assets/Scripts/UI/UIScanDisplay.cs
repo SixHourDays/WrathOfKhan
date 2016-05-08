@@ -30,9 +30,9 @@ public class UIScanDisplay : MonoBehaviour
         Texture2D scanTex = m_scanManager.ScanTexture;
         m_scanImg.texture = scanTex;
 
-        float height = m_scanImg.canvas.pixelRect.height;
-        float width = scanTex.width * (height / scanTex.height);
+   //     float height = m_scanImg.canvas.pixelRect.height;
+    //    float width = scanTex.width * (height / scanTex.height);
 
-        m_scanImg.rectTransform.sizeDelta = new Vector2(width, height);
+    //    m_scanImg.rectTransform.sizeDelta = new Vector2(width, height);
     }
 }
