@@ -7,6 +7,7 @@ public class UIManager : MonoBehaviour
     public Texture2D m_fullPowerNodeTexture;
     public Texture2D m_emptyPowerMouseOverTexture;
     public Texture2D m_fullPowerMouseOverTexture;
+    public Texture2D m_destroyedPowerNodeTexture;
 
     private GameObject m_hud;
     private GameObject m_heatMap;
@@ -71,6 +72,11 @@ public class UIManager : MonoBehaviour
     public Sprite GetFullPowerMouseOverSprite()
     {
         return GetSprite(m_fullPowerMouseOverTexture);
+    }
+
+    public Sprite GetDestroyedPowerNodeSprite()
+    {
+        return GetSprite(m_destroyedPowerNodeTexture);
     }
 
     public void SetPhasesInactive()

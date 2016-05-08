@@ -16,7 +16,7 @@ public class UIPowerControl : MonoBehaviour
         m_systems[0] = this.transform.FindChild("Weapons").GetComponent<UIPowerSystem>();
         m_systems[1] = this.transform.FindChild("Shields").GetComponent<UIPowerSystem>();
         m_systems[2] = this.transform.FindChild("Engines").GetComponent<UIPowerSystem>();
-
+        m_systems[0].m_destroyedPower = 1;
         UpdateAvailablePower();
 	}
 	
@@ -25,6 +25,21 @@ public class UIPowerControl : MonoBehaviour
     {
 
 	}
+
+    public static UIPowerControl Get()
+    {
+        UIPowerControl uiPower = FindObjectOfType<UIPowerControl>();
+        Debug.Assert(uiPower != null);
+        return uiPower;
+    }
+
+    public void ClearPower()
+    {
+        for (int i = 0; i < m_systems.Length; ++i)
+        {
+            m_systems[i].ClearPower();
+        }
+    }
 
     public void AdjustPower( int powerAdjustment )
     {

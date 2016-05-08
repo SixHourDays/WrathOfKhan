@@ -7,6 +7,7 @@ public class UIPowerSystem : MonoBehaviour
 {
     public Image[] m_imgNodes;
     public int m_power;
+    public int m_destroyedPower;
 
     private bool m_updateMouseOver = false;
     private UIPowerControl m_pwrControl;
@@ -47,6 +48,10 @@ public class UIPowerSystem : MonoBehaviour
             {
                 m_imgNodes[i].sprite = UIManager.Get().GetFullPowerNodeSprite();
             }
+            else if ( IsDestroyedPowerNode(i) )
+            {
+                m_imgNodes[i].sprite = UIManager.Get().GetDestroyedPowerNodeSprite();
+            }
             else
             {
                 m_imgNodes[i].sprite = UIManager.Get().GetEmptyPowerNodeSprite();
@@ -63,16 +68,22 @@ public class UIPowerSystem : MonoBehaviour
         return (mouseX > xPos);
     }
 
+    private bool IsDestroyedPowerNode( int nodeIdx )
+    {
+        return (m_imgNodes.Length - m_destroyedPower < nodeIdx + 1);
+    }
+
     private void UpdatePowerMouseOver()
     {
         for (int i = 0; i < m_imgNodes.Length; ++i)
         {
             bool powerOn = m_power >= (i + 1);
+            bool powerNodeDestroyed = IsDestroyedPowerNode(i);
 
             int powerAdjustment = m_power - (i + 1);
             int availablePower = m_pwrControl.availablePower + powerAdjustment;
 
-            bool displayMouseOver = IsMouseOverPowerNode(i) && (availablePower >= 0);
+            bool displayMouseOver = IsMouseOverPowerNode(i) && (availablePower >= 0) && !powerNodeDestroyed;
 
             if (displayMouseOver)
             {
@@ -91,12 +102,23 @@ public class UIPowerSystem : MonoBehaviour
                 {
                     m_imgNodes[i].sprite = UIManager.Get().GetFullPowerNodeSprite();
                 }
+                else if (powerNodeDestroyed)
+                {
+                    m_imgNodes[i].sprite = UIManager.Get().GetDestroyedPowerNodeSprite();
+                }
                 else
                 {
                     m_imgNodes[i].sprite = UIManager.Get().GetEmptyPowerNodeSprite();
                 }
             }
         }
+    }
+
+    public void ClearPower()
+    {
+        int powerAdjust = m_power;
+        m_pwrControl.AdjustPower(powerAdjust);
+        SetPower(0);
     }
 
     private void AssignPower()
@@ -111,7 +133,7 @@ public class UIPowerSystem : MonoBehaviour
             int powerAdjustment = m_power - (i + 1);
             int availablePower = m_pwrControl.availablePower + powerAdjustment;
 
-            if ( IsMouseOverPowerNode(i) && (availablePower >= 0))
+            if ( IsMouseOverPowerNode(i) && (availablePower >= 0) && !IsDestroyedPowerNode(i))
             {
                 ++numNodes;
             }

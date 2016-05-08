@@ -95,6 +95,8 @@ public class GameplayScript : MonoBehaviour
         {
             m_networkController.SendTransmission(new EndTurnTransmission());
         }
+
+        UIPowerControl.Get().ClearPower();
     }
 
     public void OnEndTurnNetworkEvent(EndTurnTransmission transmission)
