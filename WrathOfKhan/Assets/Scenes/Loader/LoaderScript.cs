@@ -25,6 +25,11 @@ public class LoaderScript : MonoBehaviour
         SceneManager.LoadScene(name, LoadSceneMode.Additive);
     }
 
+    public void ToggleMusic(bool on)
+    {
+        gameObject.GetComponent<AudioSource>().enabled = on;
+    }
+
     // Use this for initialization
     void Start()
     {
