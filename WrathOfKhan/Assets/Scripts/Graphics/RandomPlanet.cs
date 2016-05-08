@@ -17,6 +17,9 @@ public class RandomPlanet : MonoBehaviour
 
         CircleCollider2D circleCollider = this.GetComponent<CircleCollider2D>();
         circleCollider.radius = Mathf.Max(spriteRenderer.bounds.extents.x, spriteRenderer.bounds.extents.y);
+
+        float rotation = Random.Range(0.0f, 360.0f);
+        this.transform.Rotate(Vector3.forward, rotation);
 	}
 	
 	// Update is called once per frame
