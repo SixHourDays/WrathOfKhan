@@ -38,6 +38,11 @@ public class GameplayScript : MonoBehaviour
         GameObject newShip = (GameObject)GameObject.Instantiate(playerShipPrefab, position, new Quaternion());
         newShip.transform.parent = transform; //make it sibling to the GameScene
         newShip.GetComponent<PlayerShipScript>().playerID = playerID;
+
+        if (m_networkController)
+        {
+            newShip.GetComponent<SpriteRenderer>().sprite = m_networkController.GetSpriteForPlayer(playerID);
+        }
     }
 
     // Use this for initialization

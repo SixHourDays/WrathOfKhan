@@ -14,10 +14,19 @@ using System;
 
 public class NetworkController : MonoBehaviour
 {
+    public Sprite m_federationShip1;
+    public Sprite m_federationShip2;
+    public Sprite m_federationShip3;
+    public Sprite m_empireShip1;
+    public Sprite m_empireShip2;
+    public Sprite m_empireShip3;
+
     [Serializable]
     public class PlayerInfo
     {
         public int playerID;
+
+        public int spriteSelectionID;
     }
     
     Socket m_next = null;
@@ -37,6 +46,46 @@ public class NetworkController : MonoBehaviour
 
     List<NetworkEventHandler> m_eventHandlers = new List<NetworkEventHandler>();
 
+
+    public Sprite GetSpriteForPlayer(int playerID)
+    {
+        int spriteSelectionID = GetPlayerInfo(playerID).spriteSelectionID;
+
+        Sprite sprite = null;
+
+        switch (spriteSelectionID)
+        {
+            case 0:
+                sprite = m_federationShip1;
+                break;
+
+            case 1:
+                sprite = m_federationShip2;
+                break;
+
+            case 2:
+                sprite = m_federationShip3;
+                break;
+
+            case 3:
+                sprite = m_empireShip1;
+                break;
+
+            case 4:
+                sprite = m_empireShip2;
+                break;
+
+            case 5:
+                sprite = m_empireShip3;
+                break;
+
+            default:
+                Debug.Assert(false);
+                break;
+        }
+
+        return sprite;
+    }
 
     public PlayerInfo GetLocalPlayerInfo()
     {
@@ -189,7 +238,7 @@ public class NetworkController : MonoBehaviour
         }
     }
 
-    public bool ConnectToHost(IPAddress address)
+    public bool ConnectToHost(IPAddress address, int spriteSelection)
     {
         // we are not the host. Connect to the address and await instructions from the host (turn order etc...)
 
@@ -221,6 +270,7 @@ public class NetworkController : MonoBehaviour
             // now send some data about what we selected
 
             LoginToHostTransmission loginTransmission = new LoginToHostTransmission();
+            loginTransmission.spriteSelection = spriteSelection;
 
             SendTransmission(loginTransmission);
         }
@@ -239,7 +289,7 @@ public class NetworkController : MonoBehaviour
     }
 
     // returns if it was successful in starting to listen. Can deal with the UI in a fancy way if we want (instead of crashing the app on random exceptions)
-    public bool ListenForConnections(int numberOfConnections)
+    public bool ListenForConnections(int numberOfConnections, int spriteSelection)
     {
         List<Socket> sockets_connected = new List<Socket>();
 
@@ -250,6 +300,7 @@ public class NetworkController : MonoBehaviour
             // This is where we would put OUR information.
             PlayerInfo temp_info = new PlayerInfo();
             temp_info.playerID = 0;
+            temp_info.spriteSelectionID = spriteSelection;
             m_players.Add(temp_info);
 
             server_socket.Bind(new IPEndPoint(IPAddress.Any, 55555)); // 55555 because... Always 55555
@@ -291,6 +342,7 @@ public class NetworkController : MonoBehaviour
 
             PlayerInfo info = new PlayerInfo();
             info.playerID = i + 1;
+            info.spriteSelectionID = login_transmission.spriteSelection;
             m_players.Add(info);
         }
 
