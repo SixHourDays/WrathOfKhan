@@ -23,7 +23,7 @@ public class TorpedoScript : MonoBehaviour {
         {
             // f = GM / r2 when orbiting mass is insignificant
             Vector3 offset = go.transform.position - pos;
-            float forceMag = go.GetComponent<GravBodyScript>().GM / offset.sqrMagnitude;
+            float forceMag = (float)(go.GetComponent<GravBodyScript>().GM / (double)offset.sqrMagnitude); //GM is double as it needs to be big big big
             Vector3 force = offset.normalized * forceMag;
             gravForce += force;
         }
