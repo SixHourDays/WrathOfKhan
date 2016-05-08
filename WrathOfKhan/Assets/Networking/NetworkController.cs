@@ -47,8 +47,10 @@ public class NetworkController : MonoBehaviour
     List<NetworkEventHandler> m_eventHandlers = new List<NetworkEventHandler>();
 
 
-    public Sprite GetSpriteFromSpriteID(int spriteSelectionID)
+    public Sprite GetSpriteForPlayer(int playerID)
     {
+        int spriteSelectionID = GetPlayerInfo(playerID).spriteSelectionID;
+
         Sprite sprite = null;
 
         switch (spriteSelectionID)
