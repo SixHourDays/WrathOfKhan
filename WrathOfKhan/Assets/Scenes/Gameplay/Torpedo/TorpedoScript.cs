@@ -47,7 +47,13 @@ public class TorpedoScript : MonoBehaviour {
 
         HeatMap.Get().DiffusionStep();
 
-        if ( Time.time - torpedoStartTime > torpedoLifetime )
+        if (
+            Time.time - torpedoStartTime > torpedoLifetime
+            || transform.position.x < -2000 
+            || transform.position.x > 2000 
+            || transform.position.y < -2000 
+            || transform.position.y > 2000
+        )
         {
             GameObject.Destroy(gameObject);
         }
