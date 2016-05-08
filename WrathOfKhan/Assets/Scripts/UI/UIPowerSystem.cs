@@ -65,11 +65,20 @@ public class UIPowerSystem : MonoBehaviour
         }
     }
 
+    private Vector2 MousePos()
+    {
+        Vector3 pos = Input.mousePosition;
+        pos.z = 10.0f;
+        return Camera.main.ScreenToWorldPoint(pos);
+    }
+
     private bool IsMouseOverPowerNode( int nodeIdx )
     {
-        float mouseX = Input.mousePosition.x;
+        float mouseX = MousePos().x;
         Vector3 left = new Vector3(m_imgNodes[ nodeIdx ].rectTransform.rect.xMin, 0.0f, 0.0f);
         float xPos = m_imgNodes[ nodeIdx ].transform.TransformPoint(left).x;
+
+        Debug.Log("mouseX: " + mouseX + ", xPos: " + xPos);
 
         return (mouseX > xPos);
     }
@@ -128,10 +137,7 @@ public class UIPowerSystem : MonoBehaviour
     }
 
     private void AssignPower()
-    {
-        Vector3 mousePos = this.transform.TransformPoint( Input.mousePosition );
-     
-        float mouseX = Input.mousePosition.x;
+    {     
         int numNodes = 0;
 
         for (int i = 0; i < m_imgNodes.Length; ++i)
