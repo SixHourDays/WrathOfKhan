@@ -461,6 +461,10 @@ public class PlayerShipScript : MonoBehaviour
                     {
                         CommitTurnStep(PlayerTurnSteps.EngageEngines);
                     }
+
+                    // turn the ship.
+                    gameObject.transform.rotation = Quaternion.FromToRotation(Vector3.up, aimerVelo);
+
                     break;
                 }
             case PlayerTurnSteps.LongRangeSensors:
