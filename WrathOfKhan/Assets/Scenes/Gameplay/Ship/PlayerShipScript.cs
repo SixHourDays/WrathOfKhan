@@ -1,15 +1,17 @@
 ﻿using UnityEngine;
-using System.Collections;
+using System.Collections.Generic;
 
 public class PlayerShipScript : MonoBehaviour
 {
     private NetworkController m_networkController = null;
 
-    public int playerID; // the playerID that this ship represents. Needs to be set by the GameplayScript when this class is created.
+    // damage dealt to things we ram
+    public float rammingDamageGiven = 0.4f;
 
-    public int m_weaponDamage;
-    public int m_shieldDamage;
-    public int m_engineDamage;
+    // damage we take from ramming things
+    public float rammingDamageTaken = 0.2f;
+
+    public int playerID; // the playerID that this ship represents. Needs to be set by the GameplayScript when this class is created.
 
     //this returns the one that is bound to the human playing on this computer
     public bool isLocalPlayer() { return GameplayScript.Get().localPlayerIndex == playerID; }
@@ -173,6 +175,14 @@ public class PlayerShipScript : MonoBehaviour
     //player state (relevant across all turns)
     struct ShipState
     {
+        // Shields should regen every turn.
+        // then we start applying floating damage to everything
+        
+        // shields will not take damage until shieldsRemaining gets to 0. Damage then splashes to whatever system.
+        // all normalized for tuning. To apply damage, multiply by the number of items in the powerbar.
+        public float []systemHealth;
+
+
         public bool heavyTorpedos; //start em off
         public int torpedosRemaining;
         public float shieldsRemaining; //normalized so we can tune
@@ -180,9 +190,12 @@ public class PlayerShipScript : MonoBehaviour
         public int sensorsTurnAge; //some number of turns to fade them off
         public bool cloaked;
         public ShipState(bool hvyTorp, int torps, float shld, float eng, int sens, bool clk)
-        { heavyTorpedos = hvyTorp; torpedosRemaining = torps; shieldsRemaining = shld; enginesRemaining = eng; sensorsTurnAge = sens; cloaked = clk; }
+        {
+            systemHealth = new float[UIPowerControl.Get().GetNumberOfDamagableSystems()];
+            heavyTorpedos = hvyTorp; torpedosRemaining = torps; shieldsRemaining = shld; enginesRemaining = eng; sensorsTurnAge = sens; cloaked = clk;
+        }
     };
-    ShipState m_shipState = new ShipState(false, 0, 0.0f, 0.0f, 0, false);
+    ShipState m_shipState;
 
     PlayerTurnSteps ChooseOrDone()
     {
@@ -243,6 +256,8 @@ public class PlayerShipScript : MonoBehaviour
             dotChild.SetActive(false);
             dotChild.GetComponent<SpriteRenderer>().color = new Color(1.0f, 1.0f, 1.0f, (float)(aimerDotCount - i) / aimerDotCount);
         }
+
+        m_shipState = new ShipState(false, 0, 0.0f, 0.0f, 0, false);
     }
 
     public GameObject torpedoGO;
@@ -444,6 +459,17 @@ public class PlayerShipScript : MonoBehaviour
         if (transmission.player_id == playerID)
         {
             // this is the ship that is supposed to be damaged. Damage us.
+           
+            DistributeDamage(transmission.damage_to_apply);
+
+            // only update the UI if it's the local player that got damaged
+            if (isLocalPlayer())
+            {
+                for (int i = 0; i < m_shipState.systemHealth.Length; ++i)
+                {
+                    UIPowerControl.Get().SetDamageValues(i, Mathf.FloorToInt((1.0f - m_shipState.systemHealth[i]) * UIPowerControl.Get().GetNumberOfItemsInSystemBar(i)));
+                }
+            }
         }
     }
 
@@ -451,74 +477,116 @@ public class PlayerShipScript : MonoBehaviour
     {
         if (isLocalPlayer())
         {
-            Debug.Log("ship damaged");
+            GameObject collidedObject = col.gameObject;
 
-            // just pick one thing and damage it for now.
+            TorpedoScript torpedo = collidedObject.GetComponent<TorpedoScript>();
+            PlayerShipScript otherShip = collidedObject.GetComponent<PlayerShipScript>();
+            // otherwise it's a ... planet or debris.
 
-            const int max_damage = 3; // find a good place for this.
-
-            // essentially get a random number in the range of all possible damagable items.
-
-            int rand_index = Random.Range(0, (max_damage * 3) - m_weaponDamage - m_shieldDamage - m_engineDamage);
-
-            // find the index corresponding to the item that we should damage
-            // ie: [weapon] [weapon] [weapon] [shield] [shield] [shield] [engine] [engine] [engine]
-            //         0        1        2        3        4        5        6        7        8
-            //
-            // and the case that we have 2 damage to weapons:
-            // 
-            // ie: [weapon] [shield] [shield] [shield] [engine] [engine] [engine]
-            //         0        1        2        3        4        5        6    
-            //
-            // and in the case of 1 damage to weapons, and 2 damage to shields.
-            // 
-            // ie: [weapon] [weapon] [shield] [engine] [engine] [engine]
-            //         0        1        2        3        4        5          
-            /*
-            if (rand_index >= max_damage - m_weaponDamage)
+            if (torpedo)
             {
-                rand_index -= max_damage - m_weaponDamage;
+                Debug.Log("Hit a torpedo");
+
+                DistributeDamage(torpedo.damagePower);
+            }
+            else if (otherShip)
+            {
+                // damage the other ship A LOT, while damaging us a little. idk.
+
+                DistributeDamage(rammingDamageTaken);
+
+                DamageShipTransmission damageTransmission = new DamageShipTransmission();
+                damageTransmission.player_id = otherShip.playerID;
+                damageTransmission.damage_to_apply = rammingDamageGiven;
+
+                m_networkController.SendTransmission(damageTransmission);
+
+                Debug.Log("Hit a ship");
             }
             else
             {
-                m_weaponDamage++;
-                rand_index = -1;
+                // ouch... planets hurt.
+
+                Debug.Log("Hit a planet.");
             }
 
-            if (rand_index >= 0)
+            for (int i = 0; i < m_shipState.systemHealth.Length; ++i)
             {
-                if (rand_index >=  max_damage - m_shieldDamage)
-                {
-                    rand_index -= max_damage - m_shieldDamage;
-                }
-                else
-                {
-                    m_shieldDamage++;
-                    rand_index = -1;
-                }
+                UIPowerControl.Get().SetDamageValues(i, Mathf.FloorToInt((1.0f - m_shipState.systemHealth[i]) * UIPowerControl.Get().GetNumberOfItemsInSystemBar(i)));
             }
-
-            if (rand_index >= 0)
-            {
-                if (rand_index >= max_damage - m_shieldDamage)
-                {
-                    rand_index -= max_damage - m_engineDamage;
-                }
-                else
-                {
-                    m_engineDamage++;
-                    rand_index = -1;
-                }
-            }
-            
-            if (max_damage * 3 >= m_weaponDamage + m_shieldDamage + m_engineDamage + 1)
-            {
-                m_weaponDamage = m_shieldDamage = m_engineDamage = max_damage;
-                gameObject.SetActive(false);
-            }
-
-            UIPowerControl.Get().SetDamageValues(m_weaponDamage, m_shieldDamage, m_engineDamage);
-            */
         }
+    }
+
+    //public void SetDamageToSystem
+
+    public void DistributeDamage(float damageToApply)
+    {
+        if (m_shipState.shieldsRemaining > 0.0f)
+        {
+            if (m_shipState.shieldsRemaining > damageToApply)
+            {
+                m_shipState.shieldsRemaining -= damageToApply;
+                damageToApply = 0.0f;
+            }
+            else
+            {
+                // this will destroy the shieldsLeft, and splash to systems underneath.
+                damageToApply -= m_shipState.shieldsRemaining;
+                m_shipState.shieldsRemaining = 0.0f;
+            }
+        }
+
+        // now apply to a random system that can sustain damage.
+
+        do
+        {
+            if (damageToApply > 0.0f)
+            {
+                List<int> systemsToApplyDamage = new List<int>();
+
+                for (int i = 0; i < m_shipState.systemHealth.Length; ++i)
+                {
+                    if (m_shipState.systemHealth[i] > 0.0f)
+                    {
+                        systemsToApplyDamage.Add(i);
+                    }
+                }
+
+                int randIndex = Random.Range(0, systemsToApplyDamage.Count);
+
+                damageToApply = ApplyDamageToSystem(systemsToApplyDamage[randIndex], damageToApply);
+            }
+        } while (!IsDead() && damageToApply > 0.0f);
+    }
+
+    // will return the leftover damage
+    public float ApplyDamageToSystem(int index, float damage)
+    {
+        Debug.Assert(index >= 0 && index < m_shipState.systemHealth.Length);
+        
+        if (m_shipState.systemHealth[index] > damage)
+        {
+            m_shipState.systemHealth[index] -= damage;
+            return 0.0f;
+        }
+        else
+        {
+            damage -= m_shipState.systemHealth[index];
+            m_shipState.systemHealth[index] = 0;
+            return damage;
+        }
+    }
+
+    public bool IsDead()
+    {
+        for (int i = 0; i < m_shipState.systemHealth.Length; ++i)
+        {
+            if (m_shipState.systemHealth[i] > 0.0f)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

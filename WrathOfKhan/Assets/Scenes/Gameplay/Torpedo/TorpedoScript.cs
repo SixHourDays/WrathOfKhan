@@ -6,6 +6,9 @@ public class TorpedoScript : MonoBehaviour {
     public float torpedoLifetime;
     float torpedoStartTime;
 
+    // how much damage we apply to ships.
+    public float damagePower = 0.75f;
+
     // Use this for initialization
     void Start () {
         torpedoStartTime = Time.time;

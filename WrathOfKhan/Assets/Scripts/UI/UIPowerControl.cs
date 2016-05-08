@@ -33,6 +33,16 @@ public class UIPowerControl : MonoBehaviour
         return uiPower;
     }
 
+    public int GetNumberOfDamagableSystems()
+    {
+        return m_systems.Length;
+    }
+
+    public int GetNumberOfItemsInSystemBar(int index)
+    {
+        return m_systems[index].m_imgNodes.Length;
+    }
+
     public void ClearPower()
     {
         for (int i = 0; i < m_systems.Length; ++i)
@@ -51,11 +61,9 @@ public class UIPowerControl : MonoBehaviour
         UIManager.Get().UpdateSystemPower(m_systems[0].m_power, m_systems[1].m_power, m_systems[2].m_power);
     }
 
-    public void SetDamageValues(int weaponDamage, int shieldDamage, int engineDamage)
+    public void SetDamageValues(int index, int damage)
     {
-        m_systems[0].SetDamage(weaponDamage);
-        m_systems[1].SetDamage(shieldDamage);
-        m_systems[2].SetDamage(engineDamage);
+        m_systems[index].SetDamage(damage);
     }
 
     public int availablePower

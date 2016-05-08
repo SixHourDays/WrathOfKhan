@@ -193,7 +193,7 @@ public class NetworkController : MonoBehaviour
     {
         // we are not the host. Connect to the address and await instructions from the host (turn order etc...)
 
-        // 1 because we are not the host
+        // 1 because we are not the host. Host will tell us later what ID we are.
         m_localPlayerID = 1;
 
         if (m_next != null)
@@ -216,7 +216,13 @@ public class NetworkController : MonoBehaviour
             m_next = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
             m_next.Connect(new IPEndPoint(address, 55555));
-            m_prev = m_next;
+            m_prev = m_next; // prev and next are host until it tells us otherwise.
+
+            // now send some data about what we selected
+
+            LoginToHostTransmission loginTransmission = new LoginToHostTransmission();
+
+            SendTransmission(loginTransmission);
         }
         catch (SocketException ex)
         {
@@ -241,6 +247,7 @@ public class NetworkController : MonoBehaviour
         Socket server_socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         try
         {
+            // This is where we would put OUR information.
             PlayerInfo temp_info = new PlayerInfo();
             temp_info.playerID = 0;
             m_players.Add(temp_info);
@@ -271,7 +278,23 @@ public class NetworkController : MonoBehaviour
             return false;
         }
         
-        int numPlayers = sockets_connected.Count + 1;
+        // accept all login transmissions
+
+        for (int i = 0; i < sockets_connected.Count; ++i)
+        {
+            TransmissionInfo temp_trans = RetrieveTransmission(sockets_connected[i]);
+
+            LoginToHostTransmission login_transmission = JsonUtility.FromJson<LoginToHostTransmission>(temp_trans.transmission_payload);
+
+            // we now have the login information from this person.
+            // setup their things inside our PlayerInfo list.
+
+            PlayerInfo info = new PlayerInfo();
+            info.playerID = i + 1;
+            m_players.Add(info);
+        }
+
+        int numPlayers = m_players.Count;
 
         if (numPlayers == 2)
         {
@@ -284,21 +307,18 @@ public class NetworkController : MonoBehaviour
             trans.numPlayers = numPlayers;
             trans.playerID = 1;
             trans.nextIPAddress = "";
-
-            PlayerInfo player = new PlayerInfo();
-            player.playerID = 1;
-            m_players.Add(player);
+            trans.player_information = m_players.ToArray();
 
             SendTransmission(trans);
         }
         else
         {
-            int player_index = 1;
             for (int i = 0; i < sockets_connected.Count; ++i)
             {
                 ConnectTransmission trans = new ConnectTransmission();
                 trans.numPlayers = numPlayers;
-                trans.playerID = player_index;
+                trans.playerID = i + 1;
+                trans.player_information = m_players.ToArray();
 
                 if (i == 0)
                 {
@@ -310,15 +330,8 @@ public class NetworkController : MonoBehaviour
                     trans.nextIPAddress = remoteIpEndPoint.Address.ToString();
                     Debug.Log("Sending IP Address of " + trans.nextIPAddress);
                 }
-                
-
-                PlayerInfo player = new PlayerInfo();
-                player.playerID = player_index;
-                m_players.Add(player);
 
                 SendTransmission(trans, sockets_connected[i]);
-
-                player_index++;
             }
 
             m_prev = sockets_connected[0];
@@ -354,10 +367,17 @@ public class NetworkController : MonoBehaviour
     }
 
     
-    public TransmissionInfo RetrieveTransmission()
+    public TransmissionInfo RetrieveTransmission(Socket socket = null)
     {
+        Socket sock = m_prev;
+
+        if (socket != null)
+        {
+            sock = socket;
+        }
+
         byte[] data = null;
-        ReceiveFullMessage(m_prev, out data);
+        ReceiveFullMessage(sock, out data);
 
         TransmissionInfo info = JsonUtility.FromJson<TransmissionInfo>(System.Text.Encoding.ASCII.GetString(data));
 
@@ -415,13 +435,10 @@ public class NetworkController : MonoBehaviour
             }
         }
         
-        for (int i = 0; i < connectTransmission.numPlayers; ++i)
+            // this should include us as well.
+        for (int i = 0; i < connectTransmission.player_information.Length; ++i)
         {
-            PlayerInfo info = new PlayerInfo();
-
-            info.playerID = i;
-            m_players.Add(info);
-            
+            m_players.Add(connectTransmission.player_information[i]);
         }
     }
 

@@ -18,10 +18,9 @@ public class ConnectTransmission
     // if it has something, reconnect your next (because next is currently incorrect)
     public string nextIPAddress;
 
-    //public NetworkController.PlayerInfo[] player_information;
+    // this is a sync'ed list of everyone playing
+    public NetworkController.PlayerInfo[] player_information;
 }
-
-//TODO: Need to send PlayerInfo TO host on first connect. Host then needs to replicate all this to everyone connected.
 
 [Serializable]
 public class ConnectTransmissionEvent : UnityEvent<ConnectTransmission> { }

@@ -5,8 +5,9 @@ using UnityEngine.Events;
 [Serializable]
 public class DamageShipTransmission
 {
-    public int player_id;
+    public int player_id; // player to damage
 
+    public float damage_to_apply;
 }
 
 [Serializable]
