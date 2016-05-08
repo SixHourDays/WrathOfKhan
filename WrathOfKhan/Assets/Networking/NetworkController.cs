@@ -46,6 +46,10 @@ public class NetworkController : MonoBehaviour
 
     List<NetworkEventHandler> m_eventHandlers = new List<NetworkEventHandler>();
 
+    public int GetNumberPlayers()
+    {
+        return m_players.Count;
+    }
 
     public Sprite GetSpriteForPlayer(int playerID)
     {
@@ -201,6 +205,15 @@ public class NetworkController : MonoBehaviour
         else if (info.transmission_name == typeof(DamageShipTransmission).Name)
         {
             DamageShipTransmission temp = JsonUtility.FromJson<DamageShipTransmission>(info.transmission_payload);
+
+            for (int i = 0; i < m_eventHandlers.Count; ++i)
+            {
+                m_eventHandlers[i].OnNetworkEvent(temp);
+            }
+        }
+        else if (info.transmission_name == typeof(RaiseShieldsTransmission).Name)
+        {
+            RaiseShieldsTransmission temp = JsonUtility.FromJson<RaiseShieldsTransmission>(info.transmission_payload);
 
             for (int i = 0; i < m_eventHandlers.Count; ++i)
             {

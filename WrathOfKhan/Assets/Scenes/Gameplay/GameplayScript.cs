@@ -6,6 +6,7 @@ public class GameplayScript : MonoBehaviour
     private NetworkController m_networkController = null;
 
     private bool m_firstFrameInit = false;
+    private bool m_showingDead = false;
 
     static GameplayScript sm_this;
     public static GameplayScript Get() { return sm_this; }
@@ -78,8 +79,7 @@ public class GameplayScript : MonoBehaviour
             InstantiatePlayerObject(GameObject.Find("Anchor1").transform.position, 0);
         }
     }
-
-
+    
 	void Update ()
     {
         if (!m_firstFrameInit)
@@ -98,17 +98,35 @@ public class GameplayScript : MonoBehaviour
             m_firstFrameInit = true;
         }
 
-        /*
+        if (!m_showingDead)
+        {
+            if (GetLocalPlayer().IsDead())
+            {
+                m_showingDead = true;
+                GameObject gameOverText = this.transform.FindChild("Canvas").FindChild("GameOver").gameObject; // I feel so dumb... but GameObject.Find wouldn't find it >_>
+                gameOverText.SetActive(true);
+                
+            }
+        }
+
         PlayerShipScript[] players = GetComponentsInChildren<PlayerShipScript>();
 
+        int dedPlayers = 0;
         for (int i = 0; i < players.Length; ++i)
         {
-            if (players[i].playerID == localPlayerIndex)
+            if (players[i].IsDead())
+            {
+                dedPlayers++;
+            }
+        }
+
+        if (m_networkController)
+        {
+            if (dedPlayers >= m_networkController.GetNumberPlayers() - 1)
             {
                 
             }
         }
-        */
     }
 
     public void EndLocalPlayerTurn()

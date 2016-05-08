@@ -7,6 +7,7 @@ public class NetworkEventHandler : MonoBehaviour
     public EndTurnTransmissionEvent endTurnNetworkEvent = new EndTurnTransmissionEvent();
     public ShipMovedTransmissionEvent shipMovedNetworkEvent = new ShipMovedTransmissionEvent();
     public DamageShipTransmissionEvent damageShipNetworkEvent = new DamageShipTransmissionEvent();
+    public RaiseShieldsTransmissionEvent raiseShieldsNetworkEvent = new RaiseShieldsTransmissionEvent();
 
     public void Start()
     {
@@ -87,6 +88,14 @@ public class NetworkEventHandler : MonoBehaviour
         if (damageShipNetworkEvent != null)
         {
             damageShipNetworkEvent.Invoke(transmission);
+        }
+    }
+
+    public void OnNetworkEvent(RaiseShieldsTransmission transmission)
+    {
+        if (raiseShieldsNetworkEvent != null)
+        {
+            raiseShieldsNetworkEvent.Invoke(transmission);
         }
     }
 }
