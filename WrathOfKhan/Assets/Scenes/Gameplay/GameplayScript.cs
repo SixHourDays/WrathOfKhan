@@ -16,6 +16,8 @@ public class GameplayScript : MonoBehaviour
 
     public GameObject playerShipPrefab;
 
+    public Vector2 LevelSize;
+
     public PlayerShipScript GetLocalPlayer()
     {
         PlayerShipScript[] players = GetComponentsInChildren<PlayerShipScript>();
@@ -84,6 +86,9 @@ public class GameplayScript : MonoBehaviour
                 // we're the host. Host always goes first (easiest).
                 GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.WaitForTurn);
             }
+
+            HeatMap.Get().Initialize(LevelSize);
+            ScanManager.Get().Initialize(LevelSize);
 
             m_firstFrameInit = true;
         }
