@@ -15,12 +15,17 @@ public class UIHeatDisplay : MonoBehaviour
         m_heatImg = this.GetComponentInChildren<RawImage>();
         Debug.Assert(m_heatImg != null);
 
-        m_heatManager = FindObjectOfType<HeatMap>();
+        m_heatManager = HeatMap.Get();
         Debug.Assert(m_heatManager != null);
 	}
 
     void Update()
     {
+        if( !m_heatManager.isInitialized )
+        {
+            return;
+        }
+        
         m_heatManager.RenderHeatMap();
 
         RenderTexture heatTex = m_heatManager.HeatMapTexture;

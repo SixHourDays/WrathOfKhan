@@ -3,6 +3,8 @@ using System.Collections;
 
 public class GameplayScript : MonoBehaviour
 {
+    public Vector2 LevelSize;
+
     private NetworkController m_networkController = null;
 
     private bool m_firstFrameInit = false;
@@ -50,6 +52,9 @@ public class GameplayScript : MonoBehaviour
                 // we're the host. Host always goes first (easiest).
                 GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.WaitForTurn);
             }
+
+            HeatMap.Get().Initialize( LevelSize );
+            ScanManager.Get().Initialize( LevelSize );
 
             m_firstFrameInit = true;
         }
