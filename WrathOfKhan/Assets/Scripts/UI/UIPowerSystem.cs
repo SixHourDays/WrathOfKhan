@@ -77,9 +77,7 @@ public class UIPowerSystem : MonoBehaviour
         float mouseX = MousePos().x;
         Vector3 left = new Vector3(m_imgNodes[ nodeIdx ].rectTransform.rect.xMin, 0.0f, 0.0f);
         float xPos = m_imgNodes[ nodeIdx ].transform.TransformPoint(left).x;
-
-        Debug.Log("mouseX: " + mouseX + ", xPos: " + xPos);
-
+        
         return (mouseX > xPos);
     }
 
