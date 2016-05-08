@@ -501,6 +501,13 @@ public class PlayerShipScript : MonoBehaviour
 
                 m_networkController.SendTransmission(damageTransmission);
 
+                // now stop us from moving
+
+                // with this?
+                //  CommitTurnStep(PlayerTurnSteps.EngageEngines);
+
+                // also bounce us back a bit from the ship we just hit.
+
                 Debug.Log("Hit a ship");
             }
             else
@@ -510,9 +517,12 @@ public class PlayerShipScript : MonoBehaviour
                 Debug.Log("Hit a planet.");
             }
 
-            for (int i = 0; i < m_shipState.systemHealth.Length; ++i)
+            if (m_shipState.systemHealth != null)
             {
-                UIPowerControl.Get().SetDamageValues(i, Mathf.FloorToInt((1.0f - m_shipState.systemHealth[i]) * UIPowerControl.Get().GetNumberOfItemsInSystemBar(i)));
+                for (int i = 0; i < m_shipState.systemHealth.Length; ++i)
+                {
+                    UIPowerControl.Get().SetDamageValues(i, Mathf.FloorToInt((1.0f - m_shipState.systemHealth[i]) * UIPowerControl.Get().GetNumberOfItemsInSystemBar(i)));
+                }
             }
         }
     }
