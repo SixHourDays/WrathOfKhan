@@ -390,7 +390,7 @@ public class PlayerShipScript : MonoBehaviour
                     Vector3 worldMousePos = m_camera.ScreenToWorldPoint(Input.mousePosition);
                     worldMousePos.z = 0; //need 0 to get normalized in 2d
                     Vector3 worldMouseDir = (worldMousePos - transform.position).normalized;
-                    aimerPos = transform.position + worldMouseDir * (GetComponent<CircleCollider2D>().radius * transform.localScale.x + 0.2f); //step outside
+                    aimerPos = transform.position + worldMouseDir * (GetComponent<CircleCollider2D>().radius * transform.localScale.x + 10.0f); //step outside
                     aimerVelo = worldMouseDir * torpedoVelo;
                     
                     //gravity dot aimer via predict n fixed steps
