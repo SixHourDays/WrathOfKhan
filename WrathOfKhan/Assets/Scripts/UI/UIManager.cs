@@ -12,6 +12,7 @@ public class UIManager : MonoBehaviour
     private GameObject m_hud;
     private GameObject m_heatMap;
     private GameObject m_scanMap;
+    private GameObject m_mapSelect;
 
     private UISection m_phase1;
     private UISection m_phase2;
@@ -29,6 +30,8 @@ public class UIManager : MonoBehaviour
         m_phase2 = hudObj.FindChild("Phase_2").GetComponent<UISection>();
         Debug.Assert(m_phase2 != null);
 
+        m_mapSelect = this.transform.FindChild("MapSelect").gameObject;
+
         m_heatMap = this.transform.FindChild("HeatMap").gameObject;
 
         m_scanMap = this.transform.FindChild("ScanMap").gameObject;
@@ -39,18 +42,19 @@ public class UIManager : MonoBehaviour
 
     public void Update()
     {
-        if( Input.GetKeyUp(KeyCode.M))
+        if (Input.GetKeyUp(KeyCode.M))
         {
-            m_heatMapActive = !m_heatMapActive;
-            m_scanMapActive = false;
-            SetHeatMapActive(m_heatMapActive);
+            EnableMainDisplay();
+        }
+
+        if( Input.GetKeyUp(KeyCode.H))
+        {
+            EnableHeatMap();
         }
 
         if( Input.GetKeyUp(KeyCode.S))
         {
-            m_scanMapActive = !m_scanMapActive;
-            m_heatMapActive = false;
-            SetScanMapActive(m_scanMapActive);
+            EnableScanMap();
         }
     }
 
@@ -140,42 +144,43 @@ public class UIManager : MonoBehaviour
         //todo - 4th tier
     }
 
-    public void SetHeatMapActive(bool enable)
+    public void EnableMainDisplay()
     {
-        if (enable)
-        {
-            m_hud.SetActive(false);
-            m_scanMap.SetActive(false);
-            m_heatMap.SetActive(true);
-        }
-        else
-        {
-            m_hud.SetActive(true);
-            m_heatMap.SetActive(false);
-            m_scanMap.SetActive(false);
-        }
+        m_heatMapActive = false;
+        m_scanMapActive = false;
+
+        m_hud.SetActive(true);
+        m_heatMap.SetActive(false);
+        m_scanMap.SetActive(false);
     }
 
-    public void SetScanMapActive(bool enable)
+    public void EnableHeatMap()
     {
-        if (enable)
+        m_heatMapActive = true;
+        m_scanMapActive = false;
+        
+        m_hud.SetActive(false);
+        m_heatMap.SetActive(true);
+        m_scanMap.SetActive(false);
+    }
+
+    public void EnableScanMap()
+    {
+        if( !m_scanMapActive)
         {
             PlayerShipScript player = GameplayScript.Get().GetLocalPlayer();
 
             Vector2 pos = new Vector2(player.transform.position.x, player.transform.position.y);
-            float startRadius = player.GetComponent<CircleCollider2D>().radius + 0.2f; 
+            float startRadius = player.GetComponent<CircleCollider2D>().radius + 0.2f;
 
             ScanManager.Get().RunScan(pos, startRadius);
-         
-            m_hud.SetActive(false);
-            m_heatMap.SetActive(false);
-            m_scanMap.SetActive(true);
         }
-        else
-        {
-            m_hud.SetActive(true);
-            m_heatMap.SetActive(false);
-            m_scanMap.SetActive(false);
-        }
+   
+        m_heatMapActive = false;
+        m_scanMapActive = true;
+
+        m_hud.SetActive(false);
+        m_heatMap.SetActive(false);
+        m_scanMap.SetActive(true);
     }
 }
