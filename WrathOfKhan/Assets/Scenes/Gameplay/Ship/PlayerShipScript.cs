@@ -74,18 +74,13 @@ public class PlayerShipScript : MonoBehaviour
                     //aimer dots off
                     for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(false); }
 
+                    Debug.Log("torpedo flight");
                     turnStep = PlayerTurnSteps.FireWeapons;
 
-                    //shoot!
-                    Debug.Log("torpedo flight");
-
                     m_shipState.torpedosRemaining -= 1;
-                    //will use aimerPos and aimerVelo from AimWeapons phase
-                    firedTorpedo = (GameObject)Instantiate(torpedoGO, aimerPos, new Quaternion());
-                    firedTorpedo.transform.parent = transform.parent; //make it sibling to the ship
-                    firedTorpedo.GetComponent<TorpedoScript>().velocity = aimerVelo;
-
-                    /*GameObject loaderScene = GameObject.Find("LoaderScene");
+                    firedTorpedo = FireTorpedo(aimerPos, aimerVelo);
+                    
+                    GameObject loaderScene = GameObject.Find("LoaderScene");
 
                     if (loaderScene)
                     {
@@ -94,13 +89,13 @@ public class PlayerShipScript : MonoBehaviour
                         {
                             FireBullet bullet = new FireBullet();
 
-                            bullet.SetPosition(aimerPos);
-                            bullet.SetVelocity(aimerVelo);
+                            bullet.position = aimerPos;
+                            bullet.velocity = aimerVelo;
 
                             controller.SendTransmission(bullet);
                         }
                     }
-                    */
+
                     break;
                 }
             case PlayerTurnSteps.FireWeapons:
@@ -129,6 +124,21 @@ public class PlayerShipScript : MonoBehaviour
                     //ENGAGE!!
                     //dont decrement enginesRemaining here, used by Update's AimEngines
                     Debug.Log("ship flight");
+
+                    GameObject loaderScene = GameObject.Find("LoaderScene");
+                    if (loaderScene)
+                    {
+                        NetworkController controller = loaderScene.GetComponent<NetworkController>();
+                        if (controller)
+                        {
+                            ShipMovedTransmission mt = new ShipMovedTransmission();
+
+                            mt.end_position = aimerPos;
+                            mt.translation = aimerVelo;
+
+                            controller.SendTransmission(mt);
+                        }
+                    }
 
                     break;
                 }
@@ -190,6 +200,17 @@ public class PlayerShipScript : MonoBehaviour
             GameplayScript.Get().EndLocalPlayerTurn();
             return PlayerTurnSteps.WaitForTurn;
         }
+    }
+
+    //shoot!
+    GameObject FireTorpedo(Vector3 torpPos, Vector3 torpVelo)
+    {
+        //will use aimerPos and aimerVelo from AimWeapons phase
+        GameObject firedTorpedo = (GameObject)Instantiate(torpedoGO, torpPos, new Quaternion());
+        firedTorpedo.transform.parent = transform.parent; //make it sibling to the ship
+        firedTorpedo.GetComponent<TorpedoScript>().velocity = torpVelo;
+
+        return firedTorpedo;
     }
 
 
@@ -391,7 +412,9 @@ public class PlayerShipScript : MonoBehaviour
     {
         if (transmission.player_id == playerID)
         {
+            Debug.Assert(turnStep == PlayerTurnSteps.WaitForTurn);
             // this bullet fire is for us, simulate the bullet firing.
+            FireTorpedo(transmission.position, transmission.velocity);
         }
     }
 
@@ -399,7 +422,12 @@ public class PlayerShipScript : MonoBehaviour
     {
         if (transmission.player_id == playerID)
         {
+            Debug.Assert(turnStep == PlayerTurnSteps.WaitForTurn);
             // this is the ship that is supposed to move. Make it move.
+
+            aimerPos = transmission.end_position;
+            aimerVelo = transmission.translation;
+            CommitTurnStep(PlayerTurnSteps.EngageEngines);
         }
     }
 
