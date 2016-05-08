@@ -263,9 +263,7 @@ public class PlayerShipScript : MonoBehaviour
                     //keep processing:
                     //can view heatmap during all this!
                     //can see incoming fire at your ship, their movements
-
-                    //HACKJEFFGIFFEN
-                    UIManager.Get().SetPhasesInactive(); //sets the actions HUD to ghosted while we wait
+                    
 
                     //spins until GameplayScript notifies it's our turn
                     break;
@@ -335,7 +333,6 @@ public class PlayerShipScript : MonoBehaviour
               }
             case PlayerTurnSteps.AimEngines:
                 {
-                    
                     //aimer dots on
                     if (!transform.GetChild(0).gameObject.activeSelf)
                     {

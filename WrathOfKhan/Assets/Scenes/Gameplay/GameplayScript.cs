@@ -77,6 +77,8 @@ public class GameplayScript : MonoBehaviour
     {
         if (!m_firstFrameInit)
         {
+            UIManager.Get().SetPhasesInactive(); //sets the actions HUD to ghosted while we wait
+            
             if (localPlayerIndex == 0)
             {
                 // we're the host. Host always goes first (easiest).
