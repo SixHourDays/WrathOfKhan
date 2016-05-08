@@ -97,6 +97,18 @@ public class GameplayScript : MonoBehaviour
 
             m_firstFrameInit = true;
         }
+
+        /*
+        PlayerShipScript[] players = GetComponentsInChildren<PlayerShipScript>();
+
+        for (int i = 0; i < players.Length; ++i)
+        {
+            if (players[i].playerID == localPlayerIndex)
+            {
+                
+            }
+        }
+        */
     }
 
     public void EndLocalPlayerTurn()
@@ -113,6 +125,14 @@ public class GameplayScript : MonoBehaviour
     {
         // previous person ended their turn, so we should start our turn.
 
-        GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.WaitForTurn);
+        if (GetLocalPlayer().IsDead())
+        {
+            // transfer the end turn onwards because we ded
+            EndLocalPlayerTurn();
+        }
+        else
+        {
+            GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.WaitForTurn);
+        }
     }
 }
