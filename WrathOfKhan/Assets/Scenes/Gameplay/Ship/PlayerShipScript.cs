@@ -33,6 +33,11 @@ public class PlayerShipScript : MonoBehaviour
 
     public PlayerTurnSteps turnStep = PlayerTurnSteps.WaitForTurn;
 
+    public void SetShieldsRemaining(float remaining)
+    {
+        m_shipState.shieldsRemaining = remaining;
+        shieldSprite.GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, m_shipState.shieldsRemaining);
+    }
     //return events forwarding the turn
     //any 'do once' code lives here
     public void CommitTurnStep(PlayerTurnSteps step)
@@ -53,11 +58,10 @@ public class PlayerShipScript : MonoBehaviour
                 {
                     //get back power levels from it
                     m_shipState.torpedosRemaining = UIManager.Get().GetPowerLevel(0); //a literal count
-                    m_shipState.shieldsRemaining = UIManager.Get().GetPowerLevel(1) / 3.0f; //normalized
+                    SetShieldsRemaining(UIManager.Get().GetPowerLevel(1) / 3.0f); //normalized
                     m_shipState.enginesRemaining = UIManager.Get().GetPowerLevel(2) / 3.0f; //normalized
                     //...
                     Debug.Log( "Commit end of SetPowerLevels" + m_shipState.torpedosRemaining + " " + m_shipState.shieldsRemaining + " " + m_shipState.enginesRemaining );
-                    //TODO toggle UI with avaiable buttons for powers picked
 
                     //internal log of chosen state
                     turnStep = ChooseOrDone();
@@ -78,7 +82,7 @@ public class PlayerShipScript : MonoBehaviour
                 {
                     Debug.Log("end aimWeapons");
                     //aimer dots off
-                    for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(false); }
+                    for (int i = 0; i < dotPile.transform.childCount; ++i) { dotPile.transform.GetChild(i).gameObject.SetActive(false); }
 
                     Debug.Log("torpedo flight");
                     turnStep = PlayerTurnSteps.FireWeapons;
@@ -124,7 +128,7 @@ public class PlayerShipScript : MonoBehaviour
                 {
                     Debug.Log("end aim engines");
                     //aimer dots off
-                    for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(false); }
+                    for (int i = 0; i < dotPile.transform.childCount; ++i) { dotPile.transform.GetChild(i).gameObject.SetActive(false); }
 
                     turnStep = PlayerTurnSteps.EngageEngines;
 
@@ -258,7 +262,7 @@ public class PlayerShipScript : MonoBehaviour
         for (int i = 0; i < aimerDotCount; ++i)
         {
             GameObject dotChild = Instantiate(aimerDotGO);
-            dotChild.transform.parent = transform;
+            dotChild.transform.parent = dotPile.transform;
             dotChild.SetActive(false);
         }
 
@@ -266,6 +270,8 @@ public class PlayerShipScript : MonoBehaviour
     }
 
     public GameObject torpedoGO;
+    public GameObject dotPile;
+    public GameObject shieldSprite;
     public GameObject aimerDotGO;
     public int aimerDotCount;
     public float torpedoVelo;
@@ -345,12 +351,12 @@ public class PlayerShipScript : MonoBehaviour
             case PlayerTurnSteps.AimWeapons:
                 {
                     //aimer dots on
-                    if (!transform.GetChild(0).gameObject.activeSelf)
+                    if (!dotPile.transform.GetChild(0).gameObject.activeSelf)
                     {
                         Debug.Log("Aimweapons start");
-                        for (int i = 0; i < transform.childCount; ++i)
+                        for (int i = 0; i < dotPile.transform.childCount; ++i)
                         {
-                            GameObject go = transform.GetChild(i).gameObject;
+                            GameObject go = dotPile.transform.GetChild(i).gameObject;
                             go.SetActive(true);
                             go.GetComponent<SpriteRenderer>().color = new Color(1, 0, 0, (float)(aimerDotCount - i) / aimerDotCount);
                         }
@@ -372,7 +378,7 @@ public class PlayerShipScript : MonoBehaviour
                         Vector3 accel = gravForce / mass;
                         stepVelo += accel * Time.fixedDeltaTime;
                         stepPos += stepVelo * Time.fixedDeltaTime;
-                        transform.GetChild(i).transform.position = stepPos;
+                        dotPile.transform.GetChild(i).transform.position = stepPos;
                     }
 
                     //shoot!
@@ -400,12 +406,12 @@ public class PlayerShipScript : MonoBehaviour
             case PlayerTurnSteps.AimEngines:
                 {
                     //aimer dots on
-                    if (!transform.GetChild(0).gameObject.activeSelf)
+                    if (!dotPile.transform.GetChild(0).gameObject.activeSelf)
                     {
                         Debug.Log("AimEngines start");
-                        for (int i = 0; i < transform.childCount; ++i)
+                        for (int i = 0; i < dotPile.transform.childCount; ++i)
                         {
-                            GameObject go = transform.GetChild(i).gameObject;
+                            GameObject go = dotPile.transform.GetChild(i).gameObject;
                             go.SetActive(true);
                             go.GetComponent<SpriteRenderer>().color = new Color(0, 1, 0, (float)(aimerDotCount - i) / aimerDotCount);
                         }
@@ -430,7 +436,7 @@ public class PlayerShipScript : MonoBehaviour
                     for (int i = 0; i < aimerDotCount; ++i)
                     {
                         Vector3 dotPos = transform.position + worldMouseOffset * ((float)i / aimerDotCount);
-                        transform.GetChild(i).transform.position = dotPos;
+                        dotPile.transform.GetChild(i).transform.position = dotPos;
                     }
 
                     //shoot!
@@ -578,14 +584,14 @@ public class PlayerShipScript : MonoBehaviour
         {
             if (m_shipState.shieldsRemaining > damageToApply)
             {
-                m_shipState.shieldsRemaining -= damageToApply;
+                SetShieldsRemaining(m_shipState.shieldsRemaining - damageToApply);
                 damageToApply = 0.0f;
             }
             else
             {
                 // this will destroy the shieldsLeft, and splash to systems underneath.
                 damageToApply -= m_shipState.shieldsRemaining;
-                m_shipState.shieldsRemaining = 0.0f;
+                SetShieldsRemaining(0.0f);
             }
         }
 
