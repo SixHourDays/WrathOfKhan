@@ -24,7 +24,7 @@ public class NetworkController : MonoBehaviour
 
 
     // Shared information between host and clients.
-    PlayerInfo m_localPlayerInfo;
+    PlayerInfo m_localPlayerInfo = new PlayerInfo();
     List<PlayerInfo> m_players = new List<PlayerInfo>();
     
 
@@ -196,8 +196,6 @@ public class NetworkController : MonoBehaviour
     public bool ConnectToHost(IPAddress address)
     {
         // we are not the host. Connect to the address and await instructions from the host (turn order etc...)
-
-        SendTransmission(new ShipMovedTransmission());
 
         // 1 because we are not the host
         m_localPlayerInfo.playerID = 1;
