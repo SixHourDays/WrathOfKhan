@@ -10,8 +10,19 @@ public class NetworkSelector : MonoBehaviour
     public InputField ipAddressField;
     public InputField numberOfPlayersField;
 
+    public Sprite m_federationShip1;
+    public Sprite m_federationShip2;
+    public Sprite m_federationShip3;
+    public Sprite m_empireShip1;
+    public Sprite m_empireShip2;
+    public Sprite m_empireShip3;
+
+    public SpriteRenderer m_selectedShip;
+
     private NetworkController m_controller;
     private LoaderScript m_loader;
+
+    public int m_selectedShipIndex = 0;
 
     // Use this for initialization
     void Start()
@@ -27,7 +38,76 @@ public class NetworkSelector : MonoBehaviour
             Debug.LogError("Failed to find LoaderScene. Should always be present");
         }
     }
-	
+
+    public void SelectFederationShip1()
+    {
+        m_selectedShipIndex = 0;
+    }
+
+    public void SelectFederationShip2()
+    {
+        m_selectedShipIndex = 1;
+    }
+
+    public void SelectFederationShip3()
+    {
+        m_selectedShipIndex = 2;
+    }
+
+    public void SelectEmpireShip1()
+    {
+        m_selectedShipIndex = 3;
+    }
+
+    public void SelectEmpireShip2()
+    {
+        m_selectedShipIndex = 4;
+    }
+
+    public void SelectEmpireShip3()
+    {
+        m_selectedShipIndex = 5;
+    }
+
+
+    public void UpdateSelectedShip()
+    {
+        if (m_selectedShipIndex == 0)
+        {
+            m_selectedShip.sprite = m_federationShip1;
+        }
+
+        if (m_selectedShipIndex == 1)
+        {
+            m_selectedShip.sprite = m_federationShip2;
+        }
+
+        if (m_selectedShipIndex == 2)
+        {
+            m_selectedShip.sprite = m_federationShip3;
+        }
+
+        if (m_selectedShipIndex == 3)
+        {
+            m_selectedShip.sprite = m_empireShip1;
+        }
+
+        if (m_selectedShipIndex == 4)
+        {
+            m_selectedShip.sprite = m_empireShip2;
+        }
+
+        if (m_selectedShipIndex == 5)
+        {
+            m_selectedShip.sprite = m_empireShip3;
+        }
+    }
+
+    void Update()
+    {
+        UpdateSelectedShip();
+    }
+
     public void ConnectToHost()
     {
         // find the Network Controller and call corresponding function.
@@ -42,7 +122,7 @@ public class NetworkSelector : MonoBehaviour
             {
                 if (m_controller != null && m_loader != null)
                 {
-                    success = m_controller.ConnectToHost(ipaddress);
+                    success = m_controller.ConnectToHost(ipaddress, m_selectedShipIndex);
 
                     if (success)
                     {
@@ -80,7 +160,7 @@ public class NetworkSelector : MonoBehaviour
         {
             if (m_controller != null && m_loader != null)
             {
-                bool success = m_controller.ListenForConnections(numPlayers - 1);
+                bool success = m_controller.ListenForConnections(numPlayers - 1, m_selectedShipIndex);
 
                 if (success)
                 {
