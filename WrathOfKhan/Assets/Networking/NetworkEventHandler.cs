@@ -5,6 +5,8 @@ public class NetworkEventHandler : MonoBehaviour
     public BulletNetworkEvent bulletNetworkEvent = new BulletNetworkEvent();
     public ConnectTransmissionEvent connectTransmissionEvent = new ConnectTransmissionEvent();
     public EndTurnTransmissionEvent endTurnNetworkEvent = new EndTurnTransmissionEvent();
+    public ShipMovedTransmissionEvent shipMovedNetworkEvent = new ShipMovedTransmissionEvent();
+    public DamageShipTransmissionEvent damageShipNetworkEvent = new DamageShipTransmissionEvent();
 
     public void Start()
     {
@@ -69,6 +71,22 @@ public class NetworkEventHandler : MonoBehaviour
         if (endTurnNetworkEvent != null)
         {
             endTurnNetworkEvent.Invoke(transmission);
+        }
+    }
+
+    public void OnNetworkEvent(ShipMovedTransmission transmission)
+    {
+        if (shipMovedNetworkEvent != null)
+        {
+            shipMovedNetworkEvent.Invoke(transmission);
+        }
+    }
+
+    public void OnNetworkEvent(DamageShipTransmission transmission)
+    {
+        if (damageShipNetworkEvent != null)
+        {
+            damageShipNetworkEvent.Invoke(transmission);
         }
     }
 }

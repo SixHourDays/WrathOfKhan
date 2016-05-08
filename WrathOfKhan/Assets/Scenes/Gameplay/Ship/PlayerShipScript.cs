@@ -5,13 +5,11 @@ public class PlayerShipScript : MonoBehaviour
 {
     private NetworkController m_networkController = null;
 
-    //there are n PlayerShipScripts in the scene to represent each player
-    static int shipCount; //easy way to assign indices fixed on load order
-    public int shipIndex; //of the n indices, 1 will be the local player, and n-1 will be remote players
+    public int playerID; // the playerID that this ship represents. Needs to be set by the GameplayScript when this class is created.
 
     //this returns the one that is bound to the human playing on this computer
-    public bool isLocalPlayer() { return GameplayScript.Get().localPlayerIndex == shipIndex; }
-    public bool isRemotePlayer() { return GameplayScript.Get().localPlayerIndex != shipIndex; }
+    public bool isLocalPlayer() { return GameplayScript.Get().localPlayerIndex == playerID; }
+    public bool isRemotePlayer() { return GameplayScript.Get().localPlayerIndex != playerID; }
 
     public enum PlayerTurnSteps
     {
@@ -76,18 +74,13 @@ public class PlayerShipScript : MonoBehaviour
                     //aimer dots off
                     for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(false); }
 
+                    Debug.Log("torpedo flight");
                     turnStep = PlayerTurnSteps.FireWeapons;
 
-                    //shoot!
-                    Debug.Log("torpedo flight");
-
                     m_shipState.torpedosRemaining -= 1;
-                    //will use aimerPos and aimerVelo from AimWeapons phase
-                    firedTorpedo = (GameObject)Instantiate(torpedoGO, aimerPos, new Quaternion());
-                    firedTorpedo.transform.parent = transform.parent; //make it sibling to the ship
-                    firedTorpedo.GetComponent<TorpedoScript>().velocity = aimerVelo;
-
-                    /*GameObject loaderScene = GameObject.Find("LoaderScene");
+                    firedTorpedo = FireTorpedo(aimerPos, aimerVelo);
+                    
+                    GameObject loaderScene = GameObject.Find("LoaderScene");
 
                     if (loaderScene)
                     {
@@ -96,13 +89,14 @@ public class PlayerShipScript : MonoBehaviour
                         {
                             FireBullet bullet = new FireBullet();
 
-                            bullet.SetPosition(aimerPos);
-                            bullet.SetVelocity(aimerVelo);
+                            bullet.player_id = playerID;
+                            bullet.position = aimerPos;
+                            bullet.velocity = aimerVelo;
 
                             controller.SendTransmission(bullet);
                         }
                     }
-                    */
+
                     break;
                 }
             case PlayerTurnSteps.FireWeapons:
@@ -122,16 +116,40 @@ public class PlayerShipScript : MonoBehaviour
                 }
             case PlayerTurnSteps.AimEngines:
                 {
+                    Debug.Log("end aim engines");
+                    //aimer dots off
+                    for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(false); }
+
+                    turnStep = PlayerTurnSteps.EngageEngines;
+
+                    //ENGAGE!!
+                    //dont decrement enginesRemaining here, used by Update's AimEngines
+                    Debug.Log("ship flight");
+
+                    GameObject loaderScene = GameObject.Find("LoaderScene");
+                    if (loaderScene)
+                    {
+                        NetworkController controller = loaderScene.GetComponent<NetworkController>();
+                        if (controller)
+                        {
+                            ShipMovedTransmission mt = new ShipMovedTransmission();
+
+                            mt.player_id = playerID;
+                            mt.end_position = aimerPos;
+                            mt.translation = aimerVelo;
+
+                            controller.SendTransmission(mt);
+                        }
+                    }
 
                     break;
                 }
             case PlayerTurnSteps.EngageEngines:
                 {
-                    UIManager.Get().SetPhasesInactive();
+                    m_shipState.enginesRemaining = 0;
+                    Debug.Log("end ship flight");
 
-                    Debug.Log("chosen engageEngines");
-                    turnStep = PlayerTurnSteps.FireWeapons;
-
+                    turnStep = ChooseOrDone();
                     break;
                 }
             case PlayerTurnSteps.LongRangeSensors:
@@ -179,11 +197,26 @@ public class PlayerShipScript : MonoBehaviour
         }
         else
         {
-            Debug.Log("End turn");
-            UIManager.Get().SetPhasesInactive();
-            GameplayScript.Get().EndLocalPlayerTurn();
+            if (isLocalPlayer())
+            {
+                Debug.Log("End turn");
+                UIManager.Get().SetPhasesInactive();
+                GameplayScript.Get().EndLocalPlayerTurn();
+            }
+
             return PlayerTurnSteps.WaitForTurn;
         }
+    }
+
+    //shoot!
+    GameObject FireTorpedo(Vector3 torpPos, Vector3 torpVelo)
+    {
+        //will use aimerPos and aimerVelo from AimWeapons phase
+        GameObject firedTorpedo = (GameObject)Instantiate(torpedoGO, torpPos, new Quaternion());
+        firedTorpedo.transform.parent = transform.parent; //make it sibling to the ship
+        firedTorpedo.GetComponent<TorpedoScript>().velocity = torpVelo;
+
+        return firedTorpedo;
     }
 
 
@@ -195,9 +228,6 @@ public class PlayerShipScript : MonoBehaviour
         {
             m_networkController = loaderScene.GetComponent<NetworkController>();
         }
-
-
-        shipIndex = shipCount++;
 
         camera = FindObjectOfType<Camera>();
         Debug.Assert(camera != null);
@@ -215,14 +245,18 @@ public class PlayerShipScript : MonoBehaviour
     public GameObject aimerDotGO;
     public int aimerDotCount;
     public float torpedoVelo;
+    public float engineDistance;
+    public float engineSpeed;
 
-    //state across Firing/Fired
+    //dual meaning state:
+    //firing/fired - pos of where torp would start, velo of torp on spawn
+    //pickDest/engine - pos is final destination, velo is vector of oldpos to new pos
     Vector3 aimerPos;
     Vector3 aimerVelo;
     GameObject firedTorpedo;
 
     Camera camera; //finds out scene cam
-
+    
     // Update is called once per frame
     void Update ()
     {
@@ -235,9 +269,7 @@ public class PlayerShipScript : MonoBehaviour
                     //keep processing:
                     //can view heatmap during all this!
                     //can see incoming fire at your ship, their movements
-
-                    //HACKJEFFGIFFEN
-                    UIManager.Get().SetPhasesInactive(); //sets the actions HUD to ghosted while we wait
+                    
 
                     //spins until GameplayScript notifies it's our turn
                     break;
@@ -264,14 +296,14 @@ public class PlayerShipScript : MonoBehaviour
                         for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(true); }
                     }
 
-                    //gravity dot aimer
-                    Vector3 mousePos = camera.ScreenToWorldPoint(Input.mousePosition);
-                    mousePos.z = 0; //need 0 to get normalized in 2d
-                    Vector3 mouseDir = (mousePos - transform.position).normalized;
-                    aimerPos = transform.position + mouseDir * (GetComponent<CircleCollider2D>().radius + 0.2f); //step outside
-                    aimerVelo = mouseDir * torpedoVelo;
-
-                    //iterate n fixed steps
+                    //convert mouse to world screen pos, and get direction of mouse vs ship
+                    Vector3 worldMousePos = camera.ScreenToWorldPoint(Input.mousePosition);
+                    worldMousePos.z = 0; //need 0 to get normalized in 2d
+                    Vector3 worldMouseDir = (worldMousePos - transform.position).normalized;
+                    aimerPos = transform.position + worldMouseDir * (GetComponent<CircleCollider2D>().radius + 0.2f); //step outside
+                    aimerVelo = worldMouseDir * torpedoVelo;
+                    
+                    //gravity dot aimer via predict n fixed steps
                     Vector3 stepPos = aimerPos;
                     Vector3 stepVelo = aimerVelo;
                     for (int i = 0; i < aimerDotCount; ++i)
@@ -307,7 +339,6 @@ public class PlayerShipScript : MonoBehaviour
               }
             case PlayerTurnSteps.AimEngines:
                 {
-                    /*
                     //aimer dots on
                     if (!transform.GetChild(0).gameObject.activeSelf)
                     {
@@ -315,45 +346,54 @@ public class PlayerShipScript : MonoBehaviour
                         for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(true); }
                     }
 
-                    //radius dot aimer
-                    Vector3 mousePos = camera.ScreenToWorldPoint(Input.mousePosition);
-                    mousePos.z = 0; //need 0 to get normalized in 2d
-                    Vector3 mouseDir = (mousePos - transform.position).normalized;
-                    aimerPos = transform.position + mouseDir * (GetComponent<CircleCollider2D>().radius + 0.2f); //step outside
-                    aimerVelo = mouseDir * torpedoVelo;
+                    //convert mouse to world screen pos, and get direction of mouse vs ship
+                    Vector3 worldMousePos = camera.ScreenToWorldPoint(Input.mousePosition);
+                    worldMousePos.z = 0; //need 0 to get normalized in 2d
+                    Vector3 worldMouseOffset = worldMousePos - transform.position;
 
-                    //iterate n fixed steps
-                    Vector3 stepPos = aimerPos;
-                    Vector3 stepVelo = aimerVelo;
+                    //clamp to engine power committed
+                    float maxMag = m_shipState.enginesRemaining * engineDistance;
+                    if ( worldMouseOffset.magnitude > maxMag)
+                    {
+                        worldMouseOffset = worldMouseOffset.normalized * maxMag;
+                    }
+
+                    aimerPos = transform.position + worldMouseOffset;
+                    aimerVelo = worldMouseOffset;
+
+                    //radius dot aimer
                     for (int i = 0; i < aimerDotCount; ++i)
                     {
-                        Vector3 gravForce = TorpedoScript.GetNBodyForceAtPos(stepPos);
-                        Vector3 accel = gravForce / mass;
-                        stepVelo += accel * Time.fixedDeltaTime;
-                        stepPos += stepVelo * Time.fixedDeltaTime;
-                        transform.GetChild(i).transform.position = stepPos;
+                        Vector3 dotPos = transform.position + worldMouseOffset * ((float)i / aimerDotCount);
+                        transform.GetChild(i).transform.position = dotPos;
                     }
 
                     //shoot!
                     if (Input.GetMouseButtonDown(0))
                     {
-                        CommitTurnStep(PlayerTurnSteps.AimWeapons);
+                        CommitTurnStep(PlayerTurnSteps.AimEngines);
                     }
-                    */
 
                     break;
                 }
             case PlayerTurnSteps.EngageEngines:
               {
-
-                    //toggle between flight mode and aimNShoot mode
-                    if (Input.GetKeyDown(KeyCode.Space))
+                    //move by steps of engineSpeed, until last step, then do less
+                    Vector3 offsetToDest = transform.position - aimerPos;
+                    bool lastStep = false;
+                    float stepDist = engineSpeed;
+                    if (offsetToDest.magnitude < engineSpeed)
                     {
-                        turnStep = PlayerTurnSteps.FireWeapons;
-                        for (int i = 0; i < transform.childCount; ++i) { transform.GetChild(i).gameObject.SetActive(true); }
+                        lastStep = true;
+                        stepDist = offsetToDest.magnitude;
                     }
+                     
+                    transform.position += aimerVelo.normalized * stepDist;
 
-
+                    if ( lastStep )
+                    {
+                        CommitTurnStep(PlayerTurnSteps.EngageEngines);
+                    }
                     break;
                 }
             case PlayerTurnSteps.LongRangeSensors:
@@ -369,29 +409,38 @@ public class PlayerShipScript : MonoBehaviour
         
     }
 
-    void FixedUpdate()
-    {
-        if (turnStep != PlayerTurnSteps.EngageEngines) { return; }
+    public float mass {  get { return GetComponent<Rigidbody2D>().mass; } }
 
-        Vector3 gravForce = TorpedoScript.GetNBodyForceAtPos(transform.position);
-        Vector3 accel = gravForce / mass;
-        velocity += accel * Time.fixedDeltaTime;
-        transform.position += velocity * Time.fixedDeltaTime;
+    public void OnBulletFiredNetworkEvent(FireBullet transmission)
+    {
+        if (transmission.player_id == playerID)
+        {
+            Debug.Assert(turnStep == PlayerTurnSteps.WaitForTurn);
+            // this bullet fire is for us, simulate the bullet firing.
+            FireTorpedo(transmission.position, transmission.velocity);
+        }
     }
 
-    public float mass {  get { return GetComponent<Rigidbody2D>().mass; } }
-    public Vector3 velocity;
-
-    public void OnBulletFired(FireBullet bullet)
+    public void OnShipMovedNetworkEvent(ShipMovedTransmission transmission)
     {
-        Debug.Log("Fired a bullet at (" + bullet.x + ", " + bullet.y + ", " + bullet.z + ")");
+        if (transmission.player_id == playerID)
+        {
+            Debug.Assert(turnStep == PlayerTurnSteps.WaitForTurn);
+            // this is the ship that is supposed to move. Make it move.
 
-        Vector3 vel = new Vector3(bullet.vx, bullet.vy, bullet.vz);
-        Vector3 pos = new Vector3(bullet.x, bullet.y, bullet.z);
+            aimerPos = transmission.end_position;
+            aimerVelo = transmission.translation;
 
-        GameObject torp = (GameObject)Instantiate(torpedoGO, pos, new Quaternion());
-        torp.transform.parent = transform.parent; //make it sibling to the ship
-        torp.GetComponent<TorpedoScript>().velocity = vel;
+            turnStep = PlayerTurnSteps.EngageEngines;
+        }
+    }
+
+    public void OnShipDamagedNetworkEvent(DamageShipTransmission transmission)
+    {
+        if (transmission.player_id == playerID)
+        {
+            // this is the ship that is supposed to be damaged. Damage us.
+        }
     }
 
     void OnCollisionEnter2D(Collision2D col)
