@@ -31,9 +31,6 @@ public class UIHeatDisplay : MonoBehaviour
         RenderTexture heatTex = m_heatManager.HeatMapTexture;
         m_heatImg.texture = heatTex;
 
-        float height = m_heatImg.canvas.pixelRect.height;
-        float width = heatTex.width * (height/heatTex.height);
-
-        m_heatImg.rectTransform.sizeDelta = new Vector2(width, height);
+        float height = Mathf.Min(heatTex.height, Screen.height);
     }
 }
