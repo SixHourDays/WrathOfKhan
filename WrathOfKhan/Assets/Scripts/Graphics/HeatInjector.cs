@@ -37,7 +37,10 @@ public class HeatInjector : MonoBehaviour
 
     void OnDestroy()
     {
-        HeatMap.Get().Unregister(this);
+        if (this && HeatMap.Get().isInitialized)
+        {
+            HeatMap.Get().Unregister(this);
+        }
     }
 
     public void HeatUpdate()
