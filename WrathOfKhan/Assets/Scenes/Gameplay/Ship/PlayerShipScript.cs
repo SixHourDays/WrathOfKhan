@@ -89,6 +89,7 @@ public class PlayerShipScript : MonoBehaviour
                         {
                             FireBullet bullet = new FireBullet();
 
+                            bullet.player_id = playerID;
                             bullet.position = aimerPos;
                             bullet.velocity = aimerVelo;
 
@@ -133,6 +134,7 @@ public class PlayerShipScript : MonoBehaviour
                         {
                             ShipMovedTransmission mt = new ShipMovedTransmission();
 
+                            mt.player_id = playerID;
                             mt.end_position = aimerPos;
                             mt.translation = aimerVelo;
 
@@ -195,9 +197,13 @@ public class PlayerShipScript : MonoBehaviour
         }
         else
         {
-            Debug.Log("End turn");
-            UIManager.Get().SetPhasesInactive();
-            GameplayScript.Get().EndLocalPlayerTurn();
+            if (isLocalPlayer())
+            {
+                Debug.Log("End turn");
+                UIManager.Get().SetPhasesInactive();
+                GameplayScript.Get().EndLocalPlayerTurn();
+            }
+
             return PlayerTurnSteps.WaitForTurn;
         }
     }
@@ -424,7 +430,8 @@ public class PlayerShipScript : MonoBehaviour
 
             aimerPos = transmission.end_position;
             aimerVelo = transmission.translation;
-            CommitTurnStep(PlayerTurnSteps.EngageEngines);
+
+            turnStep = PlayerTurnSteps.EngageEngines;
         }
     }
 
