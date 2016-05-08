@@ -14,6 +14,7 @@ using System;
 
 public class NetworkController : MonoBehaviour
 {
+    [Serializable]
     public class PlayerInfo
     {
         public int playerID;
@@ -24,7 +25,7 @@ public class NetworkController : MonoBehaviour
 
 
     // Shared information between host and clients.
-    PlayerInfo m_localPlayerInfo = new PlayerInfo();
+    int m_localPlayerID;
     List<PlayerInfo> m_players = new List<PlayerInfo>();
     
 
@@ -39,16 +40,11 @@ public class NetworkController : MonoBehaviour
 
     public PlayerInfo GetLocalPlayerInfo()
     {
-        return m_localPlayerInfo;
+        return GetPlayerInfo(m_localPlayerID);
     }
 
     public PlayerInfo GetPlayerInfo(int playerID)
     {
-        if (m_localPlayerInfo.playerID == playerID)
-        {
-            return GetLocalPlayerInfo();
-        }
-
         for (int i = 0; i < m_players.Count; ++i)
         {
             if (m_players[i].playerID == playerID)
@@ -94,7 +90,7 @@ public class NetworkController : MonoBehaviour
 
             TransmissionInfo info = RetrieveTransmission();
 
-            if (info.transmission_from_id != m_localPlayerInfo.playerID)
+            if (info.transmission_from_id != m_localPlayerID)
             {
                 bool shouldPropegate = DispatchEvent(info);
 
@@ -198,7 +194,7 @@ public class NetworkController : MonoBehaviour
         // we are not the host. Connect to the address and await instructions from the host (turn order etc...)
 
         // 1 because we are not the host
-        m_localPlayerInfo.playerID = 1;
+        m_localPlayerID = 1;
 
         if (m_next != null)
         {
@@ -245,6 +241,10 @@ public class NetworkController : MonoBehaviour
         Socket server_socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         try
         {
+            PlayerInfo temp_info = new PlayerInfo();
+            temp_info.playerID = 0;
+            m_players.Add(temp_info);
+
             server_socket.Bind(new IPEndPoint(IPAddress.Any, 55555)); // 55555 because... Always 55555
             server_socket.Listen(10);
 
@@ -270,7 +270,7 @@ public class NetworkController : MonoBehaviour
 
             return false;
         }
-
+        
         int numPlayers = sockets_connected.Count + 1;
 
         if (numPlayers == 2)
@@ -333,7 +333,7 @@ public class NetworkController : MonoBehaviour
         TransmissionInfo infoObject = new TransmissionInfo();
 
         infoObject.transmission_name = transmissionObject.GetType().Name;
-        infoObject.transmission_from_id = m_localPlayerInfo.playerID;
+        infoObject.transmission_from_id = m_localPlayerID;
         infoObject.transmission_payload = JsonUtility.ToJson(transmissionObject);
 
         return SendTransmissionInfo(infoObject, socket);
@@ -367,7 +367,7 @@ public class NetworkController : MonoBehaviour
 
     public void OnConnectTransmission(ConnectTransmission connectTransmission)
     {
-        m_localPlayerInfo.playerID = connectTransmission.playerID;
+        m_localPlayerID = connectTransmission.playerID;
 
         if (connectTransmission.numPlayers > 2)
         {
@@ -382,7 +382,7 @@ public class NetworkController : MonoBehaviour
                 if (m_next != null)
                 {
                     // if we're the last guy... don't close next as they're the same.
-                    if (connectTransmission.numPlayers != m_localPlayerInfo.playerID + 1)
+                    if (connectTransmission.numPlayers != m_localPlayerID + 1)
                     {
                         m_next.Shutdown(SocketShutdown.Both);
                         m_next.Close();
@@ -400,7 +400,7 @@ public class NetworkController : MonoBehaviour
 
             // if we're the last one to connect, our prev is fine.
             // just need to set next and don't bother listening
-            if (connectTransmission.numPlayers != m_localPlayerInfo.playerID + 1)
+            if (connectTransmission.numPlayers != m_localPlayerID + 1)
             {
                 // listen for prev.
                 Socket server_socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -413,6 +413,15 @@ public class NetworkController : MonoBehaviour
                 server_socket.Close();
                 server_socket = null;
             }
+        }
+        
+        for (int i = 0; i < connectTransmission.numPlayers; ++i)
+        {
+            PlayerInfo info = new PlayerInfo();
+
+            info.playerID = i;
+            m_players.Add(info);
+            
         }
     }
 
