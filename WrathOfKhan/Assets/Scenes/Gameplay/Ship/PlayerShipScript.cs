@@ -36,6 +36,7 @@ public class PlayerShipScript : MonoBehaviour
     public void SetShieldsRemaining(float remaining)
     {
         m_shipState.shieldsRemaining = remaining;
+        shieldUpSound.Play();
         shieldSprite.GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, m_shipState.shieldsRemaining);
     }
     //return events forwarding the turn
@@ -172,6 +173,7 @@ public class PlayerShipScript : MonoBehaviour
                 }
             case PlayerTurnSteps.EngageEngines:
                 {
+                    engineSound.Stop();
                     m_shipState.enginesRemaining = 0;
                     Debug.Log("end ship flight");
 
@@ -293,6 +295,10 @@ public class PlayerShipScript : MonoBehaviour
     public float torpedoVelo;
     public float engineDistance;
     public float engineSpeed;
+
+    public AudioSource engineSound;
+    public AudioSource torpHitSound;
+    public AudioSource shieldUpSound;
 
     //dual meaning state:
     //firing/fired - pos of where torp would start, velo of torp on spawn
@@ -465,8 +471,10 @@ public class PlayerShipScript : MonoBehaviour
                 }
             case PlayerTurnSteps.EngageEngines:
               {
+                    if (!engineSound.isPlaying) { engineSound.Play(); }
+
                     //move by steps of engineSpeed, until last step, then do less
-                    Vector3 offsetToDest = transform.position - aimerPos;
+                        Vector3 offsetToDest = transform.position - aimerPos;
                     bool lastStep = false;
                     float stepDist = engineSpeed;
                     if (offsetToDest.magnitude < engineSpeed)
@@ -559,7 +567,7 @@ public class PlayerShipScript : MonoBehaviour
         if (torpedo)
         {
             Debug.Log("Hit a torpedo");
-
+            torpHitSound.Play();
             DistributeDamage(torpedo.damagePower);
         }
         else if (otherShip)
