@@ -5,7 +5,6 @@ public class PostFX : MonoBehaviour
 {
     public Texture2D m_crackedGlassTex;
     public Shader m_damageShader;
-    public Shader m_noiseShader;
 
     public float m_noiseScale;
 
