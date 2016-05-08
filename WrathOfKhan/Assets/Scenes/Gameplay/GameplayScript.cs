@@ -1,8 +1,10 @@
 ﻿using UnityEngine;
-using System.Collections.Generic;
+using System.Collections;
 
 public class GameplayScript : MonoBehaviour
 {
+    public Vector2 LevelSize;
+
     private NetworkController m_networkController = null;
 
     private bool m_firstFrameInit = false;
@@ -13,29 +15,10 @@ public class GameplayScript : MonoBehaviour
     //there are n ships for n players
     //this id binds this computer to one of those ships
     public int localPlayerIndex;
-
-    public GameObject playerShipPrefab;
-
     public PlayerShipScript GetLocalPlayer()
     {
         PlayerShipScript[] players = GetComponentsInChildren<PlayerShipScript>();
-        
-        for (int i = 0; i < players.Length; ++i)
-        {
-            if (players[i].playerID == localPlayerIndex)
-            {
-                return players[i];
-            }
-        }
-
-        return null;
-    }
-
-    public void InstantiatePlayerObject(Vector3 position, int playerID)
-    {
-        GameObject newShip = (GameObject)GameObject.Instantiate(playerShipPrefab, position, new Quaternion());
-        newShip.transform.parent = transform; //make it sibling to the GameScene
-        newShip.GetComponent<PlayerShipScript>().playerID = playerID;
+        return players[localPlayerIndex];
     }
 
     // Use this for initialization
@@ -56,19 +39,6 @@ public class GameplayScript : MonoBehaviour
         if (m_networkController)
         {
             localPlayerIndex = m_networkController.GetLocalPlayerInfo().playerID;
-
-            List<NetworkController.PlayerInfo> players = m_networkController.GetRemotePlayerInfos();
-            
-            for (int i = 0; i < players.Count; ++i)
-            {
-                GameObject spawnAnchor = GameObject.Find("Anchor" + players[i].playerID);
-
-                InstantiatePlayerObject(spawnAnchor.transform.position, players[i].playerID);
-            }
-        }
-        else
-        {
-            InstantiatePlayerObject(GameObject.Find("Anchor1").transform.position, 0);
         }
     }
 
@@ -77,13 +47,14 @@ public class GameplayScript : MonoBehaviour
     {
         if (!m_firstFrameInit)
         {
-            UIManager.Get().SetPhasesInactive(); //sets the actions HUD to ghosted while we wait
-            
             if (localPlayerIndex == 0)
             {
                 // we're the host. Host always goes first (easiest).
                 GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.WaitForTurn);
             }
+
+            HeatMap.Get().Initialize( LevelSize );
+            ScanManager.Get().Initialize( LevelSize );
 
             m_firstFrameInit = true;
         }
