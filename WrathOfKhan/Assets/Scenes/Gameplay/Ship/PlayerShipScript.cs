@@ -60,7 +60,23 @@ public class PlayerShipScript : MonoBehaviour
                     m_shipState.torpedosRemaining = UIManager.Get().GetPowerLevel(0); //a literal count
                     SetShieldsRemaining(UIManager.Get().GetPowerLevel(1) / 3.0f); //normalized
                     m_shipState.enginesRemaining = UIManager.Get().GetPowerLevel(2) / 3.0f; //normalized
-                    //...
+
+                    GameObject loaderScene = GameObject.Find("LoaderScene");
+
+                    if (loaderScene)
+                    {
+                        NetworkController controller = loaderScene.GetComponent<NetworkController>();
+                        if (controller)
+                        {
+                            RaiseShieldsTransmission shieldEvnt = new RaiseShieldsTransmission();
+
+                            shieldEvnt.player_id = playerID;
+                            shieldEvnt.shield_value = m_shipState.shieldsRemaining;
+
+                            controller.SendTransmission(shieldEvnt);
+                        }
+                    }
+
                     Debug.Log( "Commit end of SetPowerLevels" + m_shipState.torpedosRemaining + " " + m_shipState.shieldsRemaining + " " + m_shipState.enginesRemaining );
 
                     //internal log of chosen state
@@ -521,6 +537,16 @@ public class PlayerShipScript : MonoBehaviour
             DistributeDamage(transmission.damage_to_apply);
         }
     }
+
+    public void OnShipRaiseShieldsNetworkEvent(RaiseShieldsTransmission transmission)
+    {
+        if (transmission.player_id == playerID)
+        {
+            // this is the ship that is supposed to raise shields
+            SetShieldsRemaining(transmission.shield_value);
+        }
+    }
+
 
     void OnCollisionEnter2D(Collision2D col)
     {
