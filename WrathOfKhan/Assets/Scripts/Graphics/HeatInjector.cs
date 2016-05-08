@@ -37,6 +37,6 @@ public class HeatInjector : MonoBehaviour
         
         float centerRadius = Mathf.Max( size.x/2.0f, size.y/2.0f );
 
-        HeatMap.Get().InjectHeatObject(pos, influenceRadius * size, centerRadius, heatStrength);
+        HeatMap.Get().InjectHeatObject(pos, influenceRadius * size, 0.0f, heatStrength);
     }
 }

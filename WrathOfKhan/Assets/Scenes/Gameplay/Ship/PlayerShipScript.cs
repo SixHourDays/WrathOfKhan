@@ -253,6 +253,8 @@ public class PlayerShipScript : MonoBehaviour
         m_camera = FindObjectOfType<Camera>();
         Debug.Assert(m_camera != null);
 
+        m_postFX = m_camera.GetComponent<PostFX>();
+
         for (int i = 0; i < aimerDotCount; ++i)
         {
             GameObject dotChild = Instantiate(aimerDotGO);
@@ -279,9 +281,42 @@ public class PlayerShipScript : MonoBehaviour
     GameObject firedTorpedo;
 
     Camera m_camera; //finds out scene cam
+    PostFX m_postFX; // for camera distortion when dying.
     // Update is called once per frame
+
+    private void UpdateDamageDisplay()
+    {
+        // get our total damage normalized between 0 and 1.
+
+        if (IsDead())
+        {
+            m_postFX.m_noiseScale = 1.0f;
+            return;
+        }
+
+        float value = 0.0f;
+
+        for (int i = 0; i < m_shipState.systemHealth.Length; ++i)
+        {
+            value += m_shipState.systemHealth[i];
+        }
+
+        // normalize
+        value = value / (float)m_shipState.systemHealth.Length;
+
+        // invert
+        value = 1.0f - value;
+
+        m_postFX.m_noiseScale = value;
+    }
+    
     void Update ()
     {
+        if (isLocalPlayer())
+        {
+            UpdateDamageDisplay();
+        }
+
         //this is a step by step sequence: init / live things are done here, and 'do once' / 'go to next' actions are done in CommitTurnStep above.
         switch (turnStep)
         {
@@ -555,9 +590,12 @@ public class PlayerShipScript : MonoBehaviour
                     }
                 }
 
-                int randIndex = Random.Range(0, systemsToApplyDamage.Count);
+                if (systemsToApplyDamage.Count > 0)
+                {
+                    int randIndex = Random.Range(0, systemsToApplyDamage.Count);
 
-                damageToApply = ApplyDamageToSystem(systemsToApplyDamage[randIndex], damageToApply);
+                    damageToApply = ApplyDamageToSystem(systemsToApplyDamage[randIndex], damageToApply);
+                }
             }
         } while (!IsDead() && damageToApply > 0.0f);
 
