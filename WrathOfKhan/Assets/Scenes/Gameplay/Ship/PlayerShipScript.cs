@@ -192,6 +192,10 @@ public class PlayerShipScript : MonoBehaviour
         public ShipState(bool hvyTorp, int torps, float shld, float eng, int sens, bool clk)
         {
             systemHealth = new float[UIPowerControl.Get().GetNumberOfDamagableSystems()];
+            for (int i = 0; i < systemHealth.Length; ++i)
+            {
+                systemHealth[i] = 1.0f;
+            }
             heavyTorpedos = hvyTorp; torpedosRemaining = torps; shieldsRemaining = shld; enginesRemaining = eng; sensorsTurnAge = sens; cloaked = clk;
         }
     };
@@ -246,8 +250,8 @@ public class PlayerShipScript : MonoBehaviour
             m_networkController = loaderScene.GetComponent<NetworkController>();
         }
 
-        camera = FindObjectOfType<Camera>();
-        Debug.Assert(camera != null);
+        m_camera = FindObjectOfType<Camera>();
+        Debug.Assert(m_camera != null);
 
         for (int i = 0; i < aimerDotCount; ++i)
         {
@@ -274,12 +278,10 @@ public class PlayerShipScript : MonoBehaviour
     Vector3 aimerVelo;
     GameObject firedTorpedo;
 
-    Camera camera; //finds out scene cam
-    
+    Camera m_camera; //finds out scene cam
     // Update is called once per frame
     void Update ()
     {
-
         //this is a step by step sequence: init / live things are done here, and 'do once' / 'go to next' actions are done in CommitTurnStep above.
         switch (turnStep)
         {
@@ -316,7 +318,7 @@ public class PlayerShipScript : MonoBehaviour
                     }
 
                     //convert mouse to world screen pos, and get direction of mouse vs ship
-                    Vector3 worldMousePos = camera.ScreenToWorldPoint(Input.mousePosition);
+                    Vector3 worldMousePos = m_camera.ScreenToWorldPoint(Input.mousePosition);
                     worldMousePos.z = 0; //need 0 to get normalized in 2d
                     Vector3 worldMouseDir = (worldMousePos - transform.position).normalized;
                     aimerPos = transform.position + worldMouseDir * (GetComponent<CircleCollider2D>().radius + 0.2f); //step outside
@@ -366,7 +368,7 @@ public class PlayerShipScript : MonoBehaviour
                     }
 
                     //convert mouse to world screen pos, and get direction of mouse vs ship
-                    Vector3 worldMousePos = camera.ScreenToWorldPoint(Input.mousePosition);
+                    Vector3 worldMousePos = m_camera.ScreenToWorldPoint(Input.mousePosition);
                     worldMousePos.z = 0; //need 0 to get normalized in 2d
                     Vector3 worldMouseOffset = worldMousePos - transform.position;
 
@@ -461,15 +463,6 @@ public class PlayerShipScript : MonoBehaviour
             // this is the ship that is supposed to be damaged. Damage us.
            
             DistributeDamage(transmission.damage_to_apply);
-
-            // only update the UI if it's the local player that got damaged
-            if (isLocalPlayer())
-            {
-                for (int i = 0; i < m_shipState.systemHealth.Length; ++i)
-                {
-                    UIPowerControl.Get().SetDamageValues(i, Mathf.FloorToInt((1.0f - m_shipState.systemHealth[i]) * UIPowerControl.Get().GetNumberOfItemsInSystemBar(i)));
-                }
-            }
         }
     }
 
@@ -567,6 +560,15 @@ public class PlayerShipScript : MonoBehaviour
                 damageToApply = ApplyDamageToSystem(systemsToApplyDamage[randIndex], damageToApply);
             }
         } while (!IsDead() && damageToApply > 0.0f);
+
+        // only update the UI if it's the local player that got damaged
+        if (isLocalPlayer())
+        {
+            for (int i = 0; i < m_shipState.systemHealth.Length; ++i)
+            {
+                UIPowerControl.Get().SetDamageValues(i, Mathf.FloorToInt((1.0f - m_shipState.systemHealth[i]) * UIPowerControl.Get().GetNumberOfItemsInSystemBar(i)));
+            }
+        }
     }
 
     // will return the leftover damage
