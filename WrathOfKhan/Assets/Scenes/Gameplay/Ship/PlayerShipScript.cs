@@ -452,8 +452,10 @@ public class PlayerShipScript : MonoBehaviour
                         lastStep = true;
                         stepDist = offsetToDest.magnitude;
                     }
-                     
+    
                     transform.position += aimerVelo.normalized * stepDist;
+
+                    HeatMap.Get().DiffusionStep();
 
                     if ( lastStep )
                     {

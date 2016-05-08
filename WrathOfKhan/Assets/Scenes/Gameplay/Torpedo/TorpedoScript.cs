@@ -44,7 +44,9 @@ public class TorpedoScript : MonoBehaviour {
 
     // Update is called once per frame
     void Update () {
-	
+
+        HeatMap.Get().DiffusionStep();
+
         if ( Time.time - torpedoStartTime > torpedoLifetime )
         {
             GameObject.Destroy(gameObject);

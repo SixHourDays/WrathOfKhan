@@ -66,7 +66,7 @@ void InjectHeat(uint3 id : SV_DispatchThreadID)
 	float t = smoothstep( size, injectCenterRadius, d );
 	float heatStrength = t*injectStrength;
 
-	HeatTexDst[uv] += heatStrength;
+	HeatTexDst[uv] = max(heatStrength, HeatTexDst[uv]);
 }
 
 
@@ -75,7 +75,7 @@ void DiffuseCell( int x, int y )
 	int2 uv = int2(x,y);
 	float currentHeat = HeatTexSrc[uv];
 
-	float lostHeat = deltaTime * heatLossSpeed;
+	float lostHeat = heatLossSpeed*currentHeat;
 	currentHeat = max(0.0, currentHeat - lostHeat);
 
 	HeatTexDst[uv] = currentHeat;

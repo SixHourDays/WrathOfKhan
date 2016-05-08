@@ -86,6 +86,11 @@ public class HeatMap : MonoBehaviour
         m_listeners.Add(listener);
     }
 
+    public void Unregister( HeatInjector listener )
+    {
+        m_listeners.Remove(listener);
+    }
+
     void InsertRandomObjects(int numObj)
     {
         for (int i = 0; i < numObj; ++i )
