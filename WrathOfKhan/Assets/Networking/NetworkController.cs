@@ -406,6 +406,7 @@ public class NetworkController : MonoBehaviour
                 }
 
                 SendTransmission(trans, sockets_connected[i]);
+                System.Threading.Thread.Sleep(1000);
             }
 
             m_prev = sockets_connected[0];

@@ -196,6 +196,17 @@ public class PlayerShipScript : MonoBehaviour
 
     }
 
+    public void SetupPlayer(int id, bool fed)
+    {
+        playerID = id;
+        m_shipState.isFederation = fed;
+    }
+    public void SetupPlayer(int id, Sprite shipSprite, bool fed)
+    {
+        GetComponent<SpriteRenderer>().sprite = shipSprite;
+        SetupPlayer(id, fed);
+    }
+
     //player state (relevant across all turns)
     struct ShipState
     {
@@ -206,15 +217,16 @@ public class PlayerShipScript : MonoBehaviour
         // all normalized for tuning. To apply damage, multiply by the number of items in the powerbar.
         public float []systemHealth;
 
-
+        public bool isFederation; //false would be Empire.
         public bool heavyTorpedos; //start em off
         public int torpedosRemaining;
         public float shieldsRemaining; //normalized so we can tune
         public float enginesRemaining; //noralized so we can tune
         public int sensorsTurnAge; //some number of turns to fade them off
         public bool cloaked;
-        public ShipState(bool hvyTorp, int torps, float shld, float eng, int sens, bool clk)
+        public ShipState(bool isFed, bool hvyTorp, int torps, float shld, float eng, int sens, bool clk)
         {
+            isFederation = true;
             systemHealth = new float[UIPowerControl.Get().GetNumberOfDamagableSystems()];
             for (int i = 0; i < systemHealth.Length; ++i)
             {
@@ -265,7 +277,12 @@ public class PlayerShipScript : MonoBehaviour
     }
 
 
-    // Use this for initialization
+    //done immediately on instantiate
+    void Awake()
+    {
+        m_shipState = new ShipState(true, false, 0, 0.0f, 0.0f, 0, false);
+    }
+    //done much later, right before first update.  Can assume all things loaded and Awaked at this point.
     void Start ()
     {
         GameObject loaderScene = GameObject.Find("LoaderScene");
@@ -285,8 +302,6 @@ public class PlayerShipScript : MonoBehaviour
             dotChild.transform.parent = dotPile.transform;
             dotChild.SetActive(false);
         }
-
-        m_shipState = new ShipState(false, 0, 0.0f, 0.0f, 0, false);
     }
 
     public GameObject torpedoGO;

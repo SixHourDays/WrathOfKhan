@@ -38,12 +38,19 @@ public class GameplayScript : MonoBehaviour
     public void InstantiatePlayerObject(Vector3 position, int playerID)
     {
         GameObject newShip = (GameObject)GameObject.Instantiate(playerShipPrefab, position, new Quaternion());
-        newShip.transform.parent = transform; //make it sibling to the GameScene
-        newShip.GetComponent<PlayerShipScript>().playerID = playerID;
+        newShip.transform.parent = transform; //make it our child
 
         if (m_networkController)
         {
-            newShip.GetComponent<SpriteRenderer>().sprite = m_networkController.GetSpriteForPlayer(playerID);
+            bool isFederation = m_networkController.GetPlayerInfo(playerID).spriteSelectionID <= 2;
+            Sprite sprite = m_networkController.GetSpriteForPlayer(playerID);
+            
+            newShip.GetComponent<PlayerShipScript>().SetupPlayer(playerID, sprite, isFederation);
+        }
+        else
+        {
+            //debug offline state for playing right from gamescene
+            newShip.GetComponent<PlayerShipScript>().SetupPlayer(playerID, true);
         }
     }
 
