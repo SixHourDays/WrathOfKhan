@@ -200,6 +200,8 @@ public class PlayerShipScript : MonoBehaviour
     {
         playerID = id;
         m_shipState.isFederation = fed;
+        UISpecialPowerSystem special = (UISpecialPowerSystem)UIPowerControl.Get().m_systems[3];
+        special.SetText(m_shipState.isFederation);
     }
     public void SetupPlayer(int id, Sprite shipSprite, bool fed)
     {
@@ -226,12 +228,14 @@ public class PlayerShipScript : MonoBehaviour
         public bool cloaked;
         public ShipState(bool isFed, bool hvyTorp, int torps, float shld, float eng, int sens, bool clk)
         {
-            isFederation = true;
+            isFederation = isFed;
+
             systemHealth = new float[UIPowerControl.Get().GetNumberOfDamagableSystems()];
             for (int i = 0; i < systemHealth.Length; ++i)
             {
                 systemHealth[i] = 1.0f;
             }
+
             heavyTorpedos = hvyTorp; torpedosRemaining = torps; shieldsRemaining = shld; enginesRemaining = eng; sensorsTurnAge = sens; cloaked = clk;
         }
     };

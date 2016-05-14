@@ -10,12 +10,12 @@ public class UIPowerSystem : MonoBehaviour
     public int m_destroyedPower;
 
     private bool m_updateMouseOver = false;
-    private UIPowerControl m_pwrControl;
+    protected UIPowerControl m_pwrControl;
 
     private bool m_active;
 
     // Use this for initialization
-	void Start () 
+	protected void Start () 
     {
         GameObject nodeObj = this.transform.FindChild("Nodes").gameObject;
         m_imgNodes = nodeObj.GetComponentsInChildren<Image>();
@@ -33,7 +33,7 @@ public class UIPowerSystem : MonoBehaviour
         }
 	}
 
-    public void SetDamage( int damage )
+    public virtual void SetDamage( int damage )
     {
         m_destroyedPower = damage;
         UpdatePowerDisplay();
@@ -46,7 +46,7 @@ public class UIPowerSystem : MonoBehaviour
         UpdatePowerDisplay();
     }
 
-    private void UpdatePowerDisplay()
+    protected void UpdatePowerDisplay()
     {
         for( int i = 0; i < m_imgNodes.Length; ++i )
         {
@@ -72,7 +72,7 @@ public class UIPowerSystem : MonoBehaviour
         return Camera.main.ScreenToWorldPoint(pos);
     }
 
-    private bool IsMouseOverPowerNode( int nodeIdx )
+    protected bool IsMouseOverPowerNode( int nodeIdx )
     {
         float mouseX = MousePos().x;
         Vector3 left = new Vector3(m_imgNodes[ nodeIdx ].rectTransform.rect.xMin, 0.0f, 0.0f);
@@ -81,12 +81,12 @@ public class UIPowerSystem : MonoBehaviour
         return (mouseX > xPos);
     }
 
-    private bool IsDestroyedPowerNode( int nodeIdx )
+    protected bool IsDestroyedPowerNode( int nodeIdx )
     {
         return (m_imgNodes.Length - m_destroyedPower < nodeIdx + 1);
     }
 
-    private void UpdatePowerMouseOver()
+    protected virtual void UpdatePowerMouseOver()
     {
         for (int i = 0; i < m_imgNodes.Length; ++i)
         {
@@ -134,7 +134,7 @@ public class UIPowerSystem : MonoBehaviour
         SetPower(0);
     }
 
-    private void AssignPower()
+    protected virtual void AssignPower()
     {     
         int numNodes = 0;
 
