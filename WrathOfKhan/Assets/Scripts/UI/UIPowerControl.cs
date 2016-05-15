@@ -58,7 +58,7 @@ public class UIPowerControl : MonoBehaviour
 
         UpdateAvailablePower();
 
-        UIManager.Get().UpdateSystemPower(m_systems[0].m_power, m_systems[1].m_power, m_systems[2].m_power);
+        UIManager.Get().UpdateSystemPower(m_systems[0].m_power, m_systems[1].m_power, m_systems[2].m_power, m_systems[3].m_power);
     }
 
     public void SetDamageValues(int index, int damage)

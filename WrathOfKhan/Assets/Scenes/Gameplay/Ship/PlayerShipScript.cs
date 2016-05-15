@@ -24,11 +24,8 @@ public class PlayerShipScript : MonoBehaviour
         ChooseAction,
         AimWeapons, //start of actions //fire seequence 1
         FireWeapons,    //fire sequence 2
-        ShieldsUp,
         AimEngines, //engines 1
         EngageEngines, //engines 2
-        LongRangeSensors,
-        EngageCloak,
     };
 
     public PlayerTurnSteps turnStep = PlayerTurnSteps.WaitForTurn;
@@ -61,6 +58,17 @@ public class PlayerShipScript : MonoBehaviour
                     m_shipState.torpedosRemaining = UIManager.Get().GetPowerLevel(0); //a literal count
                     SetShieldsRemaining(UIManager.Get().GetPowerLevel(1) / 3.0f); //normalized
                     m_shipState.enginesRemaining = UIManager.Get().GetPowerLevel(2) / 3.0f; //normalized
+                    //special
+                    if ( m_shipState.isFederation )
+                    {
+                        m_shipState.sensors = UIManager.Get().GetPowerLevel(3) == 2;
+                        UIManager.Get().EnableScanOverlay(m_shipState.sensors);
+                    }
+                    else
+                    {
+                        m_shipState.cloaked = UIManager.Get().GetPowerLevel(3) == 2;
+                    }
+
 
                     if (UIManager.Get().GetPowerLevel(1) > 0) { shieldUpSound.Play(); } //shields powered!
 
@@ -138,11 +146,6 @@ public class PlayerShipScript : MonoBehaviour
 
                     break;
                 }
-            case PlayerTurnSteps.ShieldsUp:
-                {
-
-                    break;
-                }
             case PlayerTurnSteps.AimEngines:
                 {
                     Debug.Log("end aim engines");
@@ -182,15 +185,6 @@ public class PlayerShipScript : MonoBehaviour
                     turnStep = ChooseOrDone();
                     break;
                 }
-            case PlayerTurnSteps.LongRangeSensors:
-                {
-
-                    break;
-                }
-            case PlayerTurnSteps.EngageCloak:
-                {
-                    break;
-                }
 
         }
 
@@ -200,8 +194,11 @@ public class PlayerShipScript : MonoBehaviour
     {
         playerID = id;
         m_shipState.isFederation = fed;
-        UISpecialPowerSystem special = (UISpecialPowerSystem)UIPowerControl.Get().m_systems[3];
-        special.SetText(m_shipState.isFederation);
+        if (isLocalPlayer())
+        {
+            UISpecialPowerSystem special = (UISpecialPowerSystem)UIPowerControl.Get().m_systems[3];
+            special.SetText(m_shipState.isFederation);
+        }
     }
     public void SetupPlayer(int id, Sprite shipSprite, bool fed)
     {
@@ -220,13 +217,12 @@ public class PlayerShipScript : MonoBehaviour
         public float []systemHealth;
 
         public bool isFederation; //false would be Empire.
-        public bool heavyTorpedos; //start em off
         public int torpedosRemaining;
         public float shieldsRemaining; //normalized so we can tune
         public float enginesRemaining; //noralized so we can tune
-        public int sensorsTurnAge; //some number of turns to fade them off
+        public bool sensors; //some number of turns to fade them off
         public bool cloaked;
-        public ShipState(bool isFed, bool hvyTorp, int torps, float shld, float eng, int sens, bool clk)
+        public ShipState(bool isFed, int torps, float shld, float eng, bool sens, bool clk)
         {
             isFederation = isFed;
 
@@ -236,7 +232,7 @@ public class PlayerShipScript : MonoBehaviour
                 systemHealth[i] = 1.0f;
             }
 
-            heavyTorpedos = hvyTorp; torpedosRemaining = torps; shieldsRemaining = shld; enginesRemaining = eng; sensorsTurnAge = sens; cloaked = clk;
+            torpedosRemaining = torps; shieldsRemaining = shld; enginesRemaining = eng; sensors = sens; cloaked = clk;
         }
     };
     ShipState m_shipState;
@@ -284,7 +280,7 @@ public class PlayerShipScript : MonoBehaviour
     //done immediately on instantiate
     void Awake()
     {
-        m_shipState = new ShipState(true, false, 0, 0.0f, 0.0f, 0, false);
+        m_shipState = new ShipState(true, 0, 0.0f, 0.0f, false, false);
     }
     //done much later, right before first update.  Can assume all things loaded and Awaked at this point.
     void Start ()
@@ -441,11 +437,6 @@ public class PlayerShipScript : MonoBehaviour
                     }
                     break;
                 }
-          case PlayerTurnSteps.ShieldsUp:
-              {
-
-                  break;
-              }
             case PlayerTurnSteps.AimEngines:
                 {
                     //aimer dots on
@@ -516,15 +507,6 @@ public class PlayerShipScript : MonoBehaviour
                     // turn the ship.
                     gameObject.transform.rotation = Quaternion.FromToRotation(Vector3.up, aimerVelo);
 
-                    break;
-                }
-            case PlayerTurnSteps.LongRangeSensors:
-                {
-
-                    break;
-                }
-            case PlayerTurnSteps.EngageCloak:
-                {
                     break;
                 }
         }

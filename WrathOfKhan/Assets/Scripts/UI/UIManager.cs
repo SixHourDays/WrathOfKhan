@@ -17,7 +17,6 @@ public class UIManager : MonoBehaviour
     private UISection m_phase1;
     private UISection m_phase2;
 
-    private bool m_heatMapActive = false;
     private bool m_scanMapActive = false;
 
     public void Start()
@@ -47,12 +46,7 @@ public class UIManager : MonoBehaviour
             EnableMainDisplay();
         }
 
-        if( Input.GetKeyUp(KeyCode.H))
-        {
-            EnableHeatMap();
-        }
-
-        if( Input.GetKeyUp(KeyCode.S))
+        if( Input.GetKeyUp(KeyCode.H) || Input.GetKeyUp(KeyCode.S))
         {
             EnableScanMap();
         }
@@ -113,7 +107,7 @@ public class UIManager : MonoBehaviour
         m_phase2.SetActive(true);
     }
 
-    int[] powerLevel = new int[3]; //weapon, shield, engine, special
+    int[] powerLevel = new int[4]; //weapon, shield, engine, special
     public int GetPowerLevel(int i) { return powerLevel[i]; }
 
     public UISection GetPhase(int i) { return i == 0 ? m_phase1 : m_phase2; }
@@ -136,17 +130,17 @@ public class UIManager : MonoBehaviour
         GameplayScript.Get().GetLocalPlayer().CommitTurnStep(PlayerShipScript.PlayerTurnSteps.ChooseAction);
     } 
 
-    public void UpdateSystemPower( int weaponPower, int shieldPower, int enginePower )
+    public void UpdateSystemPower( int weaponPower, int shieldPower, int enginePower, int specialPower )
     {
         powerLevel[0] = weaponPower;
         powerLevel[1] = shieldPower;
         powerLevel[2] = enginePower;
+        powerLevel[3] = specialPower;
         //todo - 4th tier
     }
 
     public void EnableMainDisplay()
     {
-        m_heatMapActive = false;
         m_scanMapActive = false;
 
         m_hud.SetActive(true);
@@ -154,19 +148,15 @@ public class UIManager : MonoBehaviour
         m_scanMap.SetActive(false);
     }
 
-    public void EnableHeatMap()
-    {
-        m_heatMapActive = true;
-        m_scanMapActive = false;
-        
-        m_hud.SetActive(false);
-        m_heatMap.SetActive(true);
-        m_scanMap.SetActive(false);
-    }
+    //the state of the raycast cloak-seeing overlay
+    private bool scanOverlayEnabled = false;
+    public void EnableScanOverlay(bool enable) { scanOverlayEnabled = enable; }
 
+    //brings up heatmap, and optionally the scan overlay
     public void EnableScanMap()
     {
-        if( !m_scanMapActive)
+        //pricey, so only do on dialog open
+        if( scanOverlayEnabled && !m_scanMapActive)
         {
             PlayerShipScript player = GameplayScript.Get().GetLocalPlayer();
 
@@ -175,11 +165,13 @@ public class UIManager : MonoBehaviour
             ScanManager.Get().RunScan(pos, startRadius);
         }
    
-        m_heatMapActive = false;
         m_scanMapActive = true;
 
         m_hud.SetActive(false);
-        m_heatMap.SetActive(false);
-        m_scanMap.SetActive(true);
+        m_heatMap.SetActive(true);
+        m_scanMap.SetActive(scanOverlayEnabled);
     }
+
+    
+    
 }

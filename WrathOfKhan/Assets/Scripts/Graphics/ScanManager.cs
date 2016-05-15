@@ -59,11 +59,13 @@ public class ScanManager : MonoBehaviour
 
         float rayStepDeg = 360.0f / (float)m_numberRaycasts;
 
-        Color[] colors = new Color[m_scanTexture.width * m_scanTexture.height];
-
-        for( int i = 0; i < colors.Length; ++i)
+        Color transparent = new Color(0, 0, 0, 0);
+        for ( int y = 0; y < m_scanTexture.height; ++y)
         {
-            colors[i] = 0.25f*Color.green;
+            for (int x = 0; x < m_scanTexture.width; ++x)
+            {
+                m_scanTexture.SetPixel(x, y, transparent);
+            }
         }
 
         int numHits = 0;
@@ -80,15 +82,12 @@ public class ScanManager : MonoBehaviour
                 Vector2 hitPos = pos + (dirVec * hit.distance);
                 Vector2 texPos = m_worldToTextureScale * (hitPos + (m_worldSize / 2.0f));
 
-                int idx = (int)texPos.x + m_scanTexture.width * (int)texPos.y;
-                colors[idx] = Color.white;
-
+                m_scanTexture.SetPixel((int)texPos.x, (int)texPos.y, Color.yellow);
                 ++numHits;
             }
         }
 
-        m_scanTexture.SetPixels(colors);
-        m_scanTexture.Apply();
+        m_scanTexture.Apply(); //upload to gpu
     }
 
     public Texture2D ScanTexture
