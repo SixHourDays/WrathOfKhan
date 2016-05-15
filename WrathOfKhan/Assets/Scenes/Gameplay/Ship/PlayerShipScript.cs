@@ -17,6 +17,8 @@ public class PlayerShipScript : MonoBehaviour
     public bool isLocalPlayer() { return GameplayScript.Get().localPlayerIndex == playerID; }
     public bool isRemotePlayer() { return GameplayScript.Get().localPlayerIndex != playerID; }
 
+    public Vector3 GetCloakInfo() { return new Vector3(transform.position.x, transform.position.y, m_shipState.cloaked); }
+
     public enum PlayerTurnSteps
     {
         WaitForTurn,
@@ -66,7 +68,19 @@ public class PlayerShipScript : MonoBehaviour
                     }
                     else
                     {
-                        m_shipState.cloaked = UIManager.Get().GetPowerLevel(3) == 2;
+                        //HACKJEFFGIFFEN can add a state and animate the fade 
+                        if (UIManager.Get().GetPowerLevel(3) == 2)
+                        {
+                            m_shipState.cloaked = 1.0f;
+                            GetComponent<SpriteRenderer>().enabled = false;
+                            GetComponent<TrailRenderer>().enabled = false;
+                        }
+                        else
+                        {
+                            m_shipState.cloaked = 0.0f;
+                            GetComponent<SpriteRenderer>().enabled = true;
+                            GetComponent<TrailRenderer>().enabled = true;
+                        }
                     }
 
 
@@ -221,10 +235,10 @@ public class PlayerShipScript : MonoBehaviour
         public float shieldsRemaining; //normalized so we can tune
         public float enginesRemaining; //noralized so we can tune
         public bool sensors; //some number of turns to fade them off
-        public bool cloaked;
-        public ShipState(bool isFed, int torps, float shld, float eng, bool sens, bool clk)
+        public float cloaked; //normalized to slide on and off
+        public ShipState(bool isFed)
         {
-            isFederation = isFed;
+            isFederation = isFed; //overwrite w SetupPlayer later
 
             systemHealth = new float[UIPowerControl.Get().GetNumberOfDamagableSystems()];
             for (int i = 0; i < systemHealth.Length; ++i)
@@ -232,7 +246,9 @@ public class PlayerShipScript : MonoBehaviour
                 systemHealth[i] = 1.0f;
             }
 
-            torpedosRemaining = torps; shieldsRemaining = shld; enginesRemaining = eng; sensors = sens; cloaked = clk;
+            torpedosRemaining = 0;
+            sensors = false;
+            shieldsRemaining = enginesRemaining = cloaked = 0.0f;
         }
     };
     ShipState m_shipState;
@@ -280,7 +296,7 @@ public class PlayerShipScript : MonoBehaviour
     //done immediately on instantiate
     void Awake()
     {
-        m_shipState = new ShipState(true, 0, 0.0f, 0.0f, false, false);
+        m_shipState = new ShipState(true);
     }
     //done much later, right before first update.  Can assume all things loaded and Awaked at this point.
     void Start ()
@@ -379,6 +395,7 @@ public class PlayerShipScript : MonoBehaviour
                     //todo
                     //draw guides (shield strength, move ranges)
                     //spins until UIManager callsback a CommitTurnStep
+
                     break;
                 }
             case PlayerTurnSteps.ChooseAction:
