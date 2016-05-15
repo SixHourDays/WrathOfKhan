@@ -42,6 +42,7 @@ public class PlayerShipScript : MonoBehaviour
 
     public void SetCloak(bool enabled)
     {
+        if (m_shipState.cloaked != enabled) { cloakSound.Play(); }
         m_shipState.cloaked = enabled;
         GetComponent<TrailRenderer>().enabled = !m_shipState.cloaked; //no trails when cloaked
     }
@@ -66,13 +67,14 @@ public class PlayerShipScript : MonoBehaviour
                 {
                     //get back power levels from it
                     m_shipState.torpedosRemaining = UIManager.Get().GetPowerLevel(0); //a literal count
-                    SetShieldsRemaining(UIManager.Get().GetPowerLevel(1) / 3.0f); //normalized
                     m_shipState.enginesRemaining = UIManager.Get().GetPowerLevel(2) / 3.0f; //normalized
                     //special
                     if ( m_shipState.isFederation )
                     {
+                        SetShieldsRemaining(UIManager.Get().GetPowerLevel(1) / 3.0f); //normalized
                         m_shipState.sensors = UIManager.Get().GetPowerLevel(3) == 2;
                         UIManager.Get().EnableScanOverlay(m_shipState.sensors);
+                        if (m_shipState.sensors) { scanSound.Play(); }
                     }
                     else
                     {
@@ -85,10 +87,13 @@ public class PlayerShipScript : MonoBehaviour
                             rt.cloak = enableCloak;
                             m_networkController.SendTransmission(rt);
                         }
+
+                        //cloak means no shields
+                        SetShieldsRemaining( enableCloak ? 0.0f : UIManager.Get().GetPowerLevel(1) / 3.0f); //normalized
                     }
 
 
-                    if (UIManager.Get().GetPowerLevel(1) > 0) { shieldUpSound.Play(); } //shields powered!
+                    if (m_shipState.shieldsRemaining > 0) { shieldUpSound.Play(); } //shields powered!
 
                     if (m_networkController)
                     {
@@ -123,6 +128,19 @@ public class PlayerShipScript : MonoBehaviour
                     //aimer dots off
                     for (int i = 0; i < dotPile.transform.childCount; ++i) { dotPile.transform.GetChild(i).gameObject.SetActive(false); }
 
+                    //firing when cloaked reveals you!
+                    if (m_shipState.cloaked)
+                    {
+                        SetCloak(false);
+                        if (m_networkController)
+                        {
+                            RaiseCloakTransmission rt = new RaiseCloakTransmission();
+                            rt.player_id = playerID;
+                            rt.cloak = false;
+                            m_networkController.SendTransmission(rt);
+                        }
+                    }
+
                     Debug.Log("torpedo flight");
                     turnStep = PlayerTurnSteps.FireWeapons;
 
@@ -145,7 +163,7 @@ public class PlayerShipScript : MonoBehaviour
             case PlayerTurnSteps.FireWeapons:
                 {
                     Debug.Log("end flight");
-                    
+
                     //return to power choice if any left
                     //elsewise end turn
                     turnStep = ChooseOrDone();
@@ -157,7 +175,8 @@ public class PlayerShipScript : MonoBehaviour
                     Debug.Log("end aim engines");
                     //aimer dots off
                     for (int i = 0; i < dotPile.transform.childCount; ++i) { dotPile.transform.GetChild(i).gameObject.SetActive(false); }
-
+                    //heat trails on if max power
+                    if (m_shipState.enginesRemaining == 1.0f) { m_heatTrail.enabled = true; }
                     turnStep = PlayerTurnSteps.EngageEngines;
 
                     //ENGAGE!!
@@ -181,6 +200,7 @@ public class PlayerShipScript : MonoBehaviour
                 {
                     engineSound.Stop();
                     m_shipState.enginesRemaining = 0;
+                    m_heatTrail.enabled = false;
                     Debug.Log("end ship flight");
 
                     turnStep = ChooseOrDone();
@@ -301,6 +321,9 @@ public class PlayerShipScript : MonoBehaviour
 
         m_postFX = m_camera.GetComponent<PostFX>();
 
+        m_heatTrail = gameObject.GetComponent<HeatInjector>();
+        m_heatTrail.enabled = false; //players, unlike planets, default to off
+
         for (int i = 0; i < aimerDotCount; ++i)
         {
             GameObject dotChild = Instantiate(aimerDotGO);
@@ -322,6 +345,8 @@ public class PlayerShipScript : MonoBehaviour
     public AudioSource engineSound;
     public AudioSource torpHitSound;
     public AudioSource shieldUpSound;
+    public AudioSource scanSound;
+    public AudioSource cloakSound;
 
     //dual meaning state:
     //firing/fired - pos of where torp would start, velo of torp on spawn
@@ -332,6 +357,7 @@ public class PlayerShipScript : MonoBehaviour
 
     Camera m_camera; //finds out scene cam
     PostFX m_postFX; // for camera distortion when dying.
+    HeatInjector m_heatTrail; //for max speed trails
     // Update is called once per frame
 
     private void UpdateDamageDisplay()
@@ -676,6 +702,19 @@ public class PlayerShipScript : MonoBehaviour
 
     public void DistributeDamage(float damageToApply)
     {
+        //hits decloak!
+        if (m_shipState.cloaked)
+        {
+            SetCloak(false);
+            if (m_networkController)
+            {
+                RaiseCloakTransmission rt = new RaiseCloakTransmission();
+                rt.player_id = playerID;
+                rt.cloak = false;
+                m_networkController.SendTransmission(rt);
+            }
+        }
+
         if (m_shipState.shieldsRemaining > 0.0f)
         {
             if (m_shipState.shieldsRemaining > damageToApply)

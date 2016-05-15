@@ -12,6 +12,8 @@ public class HeatInjector : MonoBehaviour
 
     private bool m_registered = false;
 
+    public bool enabled = true;
+
     void Start()
     {
         if (useSprite)
@@ -45,6 +47,8 @@ public class HeatInjector : MonoBehaviour
 
     public void HeatUpdate()
     {
+        if (!enabled) { return; }
+
         if (useSprite)
         {
             Vector2 pos = new Vector2(m_sprite.bounds.center.x, m_sprite.bounds.center.y);
