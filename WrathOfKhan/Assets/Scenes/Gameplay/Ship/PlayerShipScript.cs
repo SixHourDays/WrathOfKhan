@@ -17,7 +17,8 @@ public class PlayerShipScript : MonoBehaviour
     public bool isLocalPlayer() { return GameplayScript.Get().localPlayerIndex == playerID; }
     public bool isRemotePlayer() { return GameplayScript.Get().localPlayerIndex != playerID; }
 
-    public Vector3 GetCloakInfo() { return new Vector3(transform.position.x, transform.position.y, m_shipState.cloaked); }
+    //pass the cloak postfx our position and cloak strength (inverse of our transparency)
+    public Vector3 GetCloakInfo() { return new Vector3(transform.position.x, transform.position.y, 1.0f - m_shipState.cloakAlpha); }
 
     public enum PlayerTurnSteps
     {
@@ -38,6 +39,13 @@ public class PlayerShipScript : MonoBehaviour
         shieldSprite.GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, m_shipState.shieldsRemaining);
 
     }
+
+    public void SetCloak(bool enabled)
+    {
+        m_shipState.cloaked = enabled;
+        GetComponent<TrailRenderer>().enabled = !m_shipState.cloaked; //no trails when cloaked
+    }
+
     //return events forwarding the turn
     //any 'do once' code lives here
     public void CommitTurnStep(PlayerTurnSteps step)
@@ -68,38 +76,28 @@ public class PlayerShipScript : MonoBehaviour
                     }
                     else
                     {
-                        //HACKJEFFGIFFEN can add a state and animate the fade 
-                        if (UIManager.Get().GetPowerLevel(3) == 2)
+                        bool enableCloak = UIManager.Get().GetPowerLevel(3) == 2;
+                        SetCloak( enableCloak );
+                        if (m_networkController)
                         {
-                            m_shipState.cloaked = 1.0f;
-                            GetComponent<SpriteRenderer>().enabled = false;
-                            GetComponent<TrailRenderer>().enabled = false;
-                        }
-                        else
-                        {
-                            m_shipState.cloaked = 0.0f;
-                            GetComponent<SpriteRenderer>().enabled = true;
-                            GetComponent<TrailRenderer>().enabled = true;
+                            RaiseCloakTransmission rt = new RaiseCloakTransmission();
+                            rt.player_id = playerID;
+                            rt.cloak = enableCloak;
+                            m_networkController.SendTransmission(rt);
                         }
                     }
 
 
                     if (UIManager.Get().GetPowerLevel(1) > 0) { shieldUpSound.Play(); } //shields powered!
 
-                    GameObject loaderScene = GameObject.Find("LoaderScene");
-
-                    if (loaderScene)
+                    if (m_networkController)
                     {
-                        NetworkController controller = loaderScene.GetComponent<NetworkController>();
-                        if (controller)
-                        {
-                            RaiseShieldsTransmission shieldEvnt = new RaiseShieldsTransmission();
+                        RaiseShieldsTransmission shieldEvnt = new RaiseShieldsTransmission();
 
-                            shieldEvnt.player_id = playerID;
-                            shieldEvnt.shield_value = m_shipState.shieldsRemaining;
+                        shieldEvnt.player_id = playerID;
+                        shieldEvnt.shield_value = m_shipState.shieldsRemaining;
 
-                            controller.SendTransmission(shieldEvnt);
-                        }
+                        m_networkController.SendTransmission(shieldEvnt);
                     }
 
                     Debug.Log( "Commit end of SetPowerLevels" + m_shipState.torpedosRemaining + " " + m_shipState.shieldsRemaining + " " + m_shipState.enginesRemaining );
@@ -131,21 +129,15 @@ public class PlayerShipScript : MonoBehaviour
                     m_shipState.torpedosRemaining -= 1;
                     firedTorpedo = FireTorpedo(aimerPos, aimerVelo);
                     
-                    GameObject loaderScene = GameObject.Find("LoaderScene");
-
-                    if (loaderScene)
+                   if (m_networkController)
                     {
-                        NetworkController controller = loaderScene.GetComponent<NetworkController>();
-                        if (controller)
-                        {
-                            FireBullet bullet = new FireBullet();
+                        FireBullet bullet = new FireBullet();
 
-                            bullet.player_id = playerID;
-                            bullet.position = aimerPos;
-                            bullet.velocity = aimerVelo;
+                        bullet.player_id = playerID;
+                        bullet.position = aimerPos;
+                        bullet.velocity = aimerVelo;
 
-                            controller.SendTransmission(bullet);
-                        }
+                        m_networkController.SendTransmission(bullet);
                     }
 
                     break;
@@ -172,20 +164,15 @@ public class PlayerShipScript : MonoBehaviour
                     //dont decrement enginesRemaining here, used by Update's AimEngines
                     Debug.Log("ship flight");
 
-                    GameObject loaderScene = GameObject.Find("LoaderScene");
-                    if (loaderScene)
+                    if (m_networkController)
                     {
-                        NetworkController controller = loaderScene.GetComponent<NetworkController>();
-                        if (controller)
-                        {
-                            ShipMovedTransmission mt = new ShipMovedTransmission();
+                        ShipMovedTransmission mt = new ShipMovedTransmission();
 
-                            mt.player_id = playerID;
-                            mt.end_position = aimerPos;
-                            mt.translation = aimerVelo;
+                        mt.player_id = playerID;
+                        mt.end_position = aimerPos;
+                        mt.translation = aimerVelo;
 
-                            controller.SendTransmission(mt);
-                        }
+                        m_networkController.SendTransmission(mt);
                     }
 
                     break;
@@ -235,7 +222,8 @@ public class PlayerShipScript : MonoBehaviour
         public float shieldsRemaining; //normalized so we can tune
         public float enginesRemaining; //noralized so we can tune
         public bool sensors; //some number of turns to fade them off
-        public float cloaked; //normalized to slide on and off
+        public bool cloaked;
+        public float cloakAlpha; //1.0 normal, 0.0 = transparent & cloaked.
         public ShipState(bool isFed)
         {
             isFederation = isFed; //overwrite w SetupPlayer later
@@ -247,8 +235,9 @@ public class PlayerShipScript : MonoBehaviour
             }
 
             torpedosRemaining = 0;
-            sensors = false;
-            shieldsRemaining = enginesRemaining = cloaked = 0.0f;
+            sensors = cloaked = false;
+            cloakAlpha = 1.0f;
+            shieldsRemaining = enginesRemaining = 0.0f;
         }
     };
     ShipState m_shipState;
@@ -328,6 +317,7 @@ public class PlayerShipScript : MonoBehaviour
     public float torpedoVelo;
     public float engineDistance;
     public float engineSpeed;
+    public float cloakingSpeed;
 
     public AudioSource engineSound;
     public AudioSource torpHitSound;
@@ -376,6 +366,24 @@ public class PlayerShipScript : MonoBehaviour
         {
             UpdateDamageDisplay();
         }
+
+        //cloak transitions
+        if ( m_shipState.cloaked && m_shipState.cloakAlpha > 0.0f)
+        {   
+            //cloaking
+            m_shipState.cloakAlpha -= cloakingSpeed * Time.deltaTime;
+            m_shipState.cloakAlpha = Mathf.Clamp01(m_shipState.cloakAlpha);
+            GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, m_shipState.cloakAlpha);
+        }
+        else if ( !m_shipState.cloaked && m_shipState.cloakAlpha < 1.0f)
+        {
+            //decloaking
+            m_shipState.cloakAlpha += cloakingSpeed * Time.deltaTime;
+            m_shipState.cloakAlpha = Mathf.Clamp01(m_shipState.cloakAlpha);
+            GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, m_shipState.cloakAlpha);
+        }
+        //else - ship is static as fully cloaked or fully visible
+
 
         //this is a step by step sequence: init / live things are done here, and 'do once' / 'go to next' actions are done in CommitTurnStep above.
         switch (turnStep)
@@ -575,6 +583,15 @@ public class PlayerShipScript : MonoBehaviour
         {
             // this is the ship that is supposed to raise shields
             SetShieldsRemaining(transmission.shield_value);
+        }
+    }
+
+    public void OnShipRaiseCloakNetworkEvent(RaiseCloakTransmission transmission)
+    {
+        if (transmission.player_id == playerID)
+        {
+            // this is the ship that is supposed to raise cloak
+            SetCloak(transmission.cloak);
         }
     }
 

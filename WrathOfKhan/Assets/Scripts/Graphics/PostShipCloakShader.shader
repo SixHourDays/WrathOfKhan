@@ -71,13 +71,11 @@
 				}
 
 				const float scale = 1.2; //nice, a big wobble every 2 ship lengths or so
-				const float limit = 0.3; //a clamp to keep the big cuts down
-				const float strength = 0.1; //distortion power once on
+				const float strength = 0.2; //enough to hide in darkness, and only barely discernable in bright starlight
 
 				//float2 offsets = tex2D(_DistortTex, i.uv * scale).rg;
 				//fixed4 col = tex2D(_MainTex, i.uv + offsets * strength);
 				float distortion = tex2D(_DistortTex, i.uv * scale).r;
-				distortion = min(distortion, limit);
 
 				fixed4 col = tex2D(_MainTex, i.uv + distortion * strength * field);
 

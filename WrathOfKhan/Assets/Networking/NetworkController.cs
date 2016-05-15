@@ -220,6 +220,15 @@ public class NetworkController : MonoBehaviour
                 m_eventHandlers[i].OnNetworkEvent(temp);
             }
         }
+        else if (info.transmission_name == typeof(RaiseCloakTransmission).Name)
+        {
+            RaiseCloakTransmission temp = JsonUtility.FromJson<RaiseCloakTransmission>(info.transmission_payload);
+
+            for (int i = 0; i < m_eventHandlers.Count; ++i)
+            {
+                m_eventHandlers[i].OnNetworkEvent(temp);
+            }
+        }
         else if (info.transmission_name == typeof(RestartGameTransmission).Name)
         {
             RestartGameTransmission temp = JsonUtility.FromJson<RestartGameTransmission>(info.transmission_payload);

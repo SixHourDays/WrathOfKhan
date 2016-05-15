@@ -12,7 +12,6 @@ public class UIManager : MonoBehaviour
     private GameObject m_hud;
     private GameObject m_heatMap;
     private GameObject m_scanMap;
-    private GameObject m_mapSelect;
 
     private UISection m_phase1;
     private UISection m_phase2;
@@ -29,7 +28,7 @@ public class UIManager : MonoBehaviour
         m_phase2 = hudObj.FindChild("Phase_2").GetComponent<UISection>();
         Debug.Assert(m_phase2 != null);
 
-        m_mapSelect = this.transform.FindChild("MapSelect").gameObject;
+        //"MapSelect" //always visible under these two anyway
 
         m_heatMap = this.transform.FindChild("HeatMap").gameObject;
 

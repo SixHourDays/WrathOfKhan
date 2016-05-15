@@ -8,6 +8,7 @@ public class NetworkEventHandler : MonoBehaviour
     public ShipMovedTransmissionEvent shipMovedNetworkEvent = new ShipMovedTransmissionEvent();
     public DamageShipTransmissionEvent damageShipNetworkEvent = new DamageShipTransmissionEvent();
     public RaiseShieldsTransmissionEvent raiseShieldsNetworkEvent = new RaiseShieldsTransmissionEvent();
+    public RaiseCloakTransmissionEvent raiseCloakNetworkEvent = new RaiseCloakTransmissionEvent();
     public RestartGameTransmissionEvent restartGameNetworkEvent = new RestartGameTransmissionEvent();
 
     public void Start()
@@ -97,6 +98,14 @@ public class NetworkEventHandler : MonoBehaviour
         if (raiseShieldsNetworkEvent != null)
         {
             raiseShieldsNetworkEvent.Invoke(transmission);
+        }
+    }
+
+    public void OnNetworkEvent(RaiseCloakTransmission transmission)
+    {
+        if (raiseCloakNetworkEvent != null)
+        {
+            raiseCloakNetworkEvent.Invoke(transmission);
         }
     }
 
